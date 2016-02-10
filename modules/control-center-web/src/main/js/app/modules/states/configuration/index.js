@@ -47,12 +47,15 @@ import generalDiscoveryS3 from './clusters/general/discovery/s3.directive';
 import generalDiscoveryShared from './clusters/general/discovery/shared.directive';
 import generalDiscoveryVm from './clusters/general/discovery/vm.directive';
 
+import cachesGeneral from './caches/general.directive';
+
 angular
 .module('ignite-console.states.configuration', [
     'ui.router'
 ])
 .directive(...summaryTabs)
 .directive(...previewPanel)
+// Clusters screen
 .directive(...clustersTransactions)
 .directive(...clustersThread)
 .directive(...clustersTime)
@@ -76,6 +79,8 @@ angular
 .directive(...generalDiscoveryS3)
 .directive(...generalDiscoveryShared)
 .directive(...generalDiscoveryVm)
+// Caches screen
+.directive(...cachesGeneral)
 // Services.
 .service(...ConfigurationSummaryResource)
 .config(['$stateProvider', function($stateProvider) {

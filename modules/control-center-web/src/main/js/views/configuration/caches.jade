@@ -33,8 +33,4 @@ include ../includes/infos
             .bs-affix-fix
             form.form-horizontal(name='ui.inputForm' ng-show='backupItem && tableVisibleRow(displayedRows, selectedItem)' novalidate)
                 .panel-group(bs-collapse ng-model='ui.activePanels' data-allow-multiple='true')
-                    +groups('general', 'backupItem')
-                    div(ng-show='ui.expanded')
-                        +advanced-options
-                        +groups('advanced', 'backupItem')
-                +advanced-options
+                    ignite-configuration-caches-general
