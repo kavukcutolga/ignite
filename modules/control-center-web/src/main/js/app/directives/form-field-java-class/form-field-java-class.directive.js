@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import template from './form-field-cache-mode.jade!';
+import template from './form-field-java-class.jade!';
 
 export default ['igniteFormFieldJavaClass', ['IgniteFormGUID', (guid) => {
     const link = (scope, el, attrs, [form, label]) => {
