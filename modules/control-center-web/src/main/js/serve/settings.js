@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+'use strict';
+
 // Fire me up!
 
 module.exports = {
@@ -22,14 +24,14 @@ module.exports = {
     inject: ['require(nconf)', 'require(fs)']
 };
 
-module.exports.factory = function (nconf, fs) {
-    nconf.file({'file': './serve/config/default.json'});
+module.exports.factory = function(nconf, fs) {
+    nconf.file({file: './serve/config/default.json'});
 
     /**
      * Normalize a port into a number, string, or false.
      */
-    const _normalizePort = function (val) {
-        var port = parseInt(val, 10);
+    const _normalizePort = function(val) {
+        const port = parseInt(val, 10);
 
         // named pipe
         if (isNaN(port))
@@ -52,7 +54,7 @@ module.exports.factory = function (nconf, fs) {
                 passphrase: nconf.get('agent-server:keyPassphrase')
             }
         },
-        server : {
+        server: {
             port: _normalizePort(nconf.get('server:port') || 80),
             SSLOptions: nconf.get('server:ssl') && {
                 enable301Redirects: true,
@@ -66,6 +68,7 @@ module.exports.factory = function (nconf, fs) {
         smtp: {
             service: nconf.get('smtp:service'),
             username: nconf.get('smtp:username'),
+            sign: nconf.get('smtp:sign'),
             email: nconf.get('smtp:email'),
             password: nconf.get('smtp:password'),
             address: (username, email) => username ? '"' + username + '" <' + email + '>' : email

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+'use strict';
+
 // Fire me up!
 
 module.exports = {
@@ -22,160 +24,125 @@ module.exports = {
     inject: ['require(lodash)', 'require(express)', 'mongo']
 };
 
-module.exports.factory = function (_, express, mongo) {
-    return new Promise((resolve) => {
-        const router = express.Router();
-        
+module.exports.factory = function(_, express, mongo) {
+    return new Promise((factoryResolve) => {
+        const router = new express.Router();
+
         /**
          * Get spaces and clusters accessed for user account.
          *
          * @param req Request.
          * @param res Response.
          */
-        router.post('/list', function (req, res) {
-            var user_id = req.currentUserId();
+        router.post('/list', (req, res) => {
+            const result = {};
+            let spaceIds = [];
+            let domains = {};
 
-            // Get owned space and all accessed space.
-            mongo.Space.find({$or: [{owner: user_id}, {usedBy: {$elemMatch: {account: user_id}}}]}, function (err, spaces) {
-                if (mongo.processed(err, res)) {
-                    var space_ids = spaces.map(function (value) {
-                        return value._id;
+            mongo.spaces(req.currentUserId())
+                .then((spaces) => {
+                    result.spaces = spaces;
+                    spaceIds = spaces.map((space) => space._id);
+
+                    return mongo.DomainModel.find({space: {$in: spaceIds}}).lean().exec();
+                })
+                .then((_domains) => {
+                    domains = _domains.reduce((map, obj) => {
+                        map[obj._id] = obj;
+
+                        return map;
+                    }, {});
+
+                    return mongo.Cache.find({space: {$in: spaceIds}}).sort('name').lean().exec();
+                })
+                .then((caches) => {
+                    _.forEach(caches, (cache) => {
+                        cache.domains = _.map(cache.domains, (domainId) => domains[domainId]);
                     });
 
-                    // Get all caches for spaces.
-                    mongo.Cache.find({space: {$in: space_ids}}).sort('name').deepPopulate('domains').exec(function (err, caches) {
-                        if (mongo.processed(err, res)) {
-                            // Get all IGFSs for spaces.
-                            mongo.Igfs.find({space: {$in: space_ids}}).sort('name').exec(function (err, igfss) {
-                                if (mongo.processed(err, res))
-                                // Get all clusters for spaces.
-                                    mongo.Cluster.find({space: {$in: space_ids}}).sort('name').deepPopulate(mongo.ClusterDefaultPopulate).exec(function (err, clusters) {
-                                        if (mongo.processed(err, res)) {
-                                            _.forEach(caches, function (cache) {
-                                                // Remove deleted caches.
-                                                cache.clusters = _.filter(cache.clusters, function (clusterId) {
-                                                    return _.find(clusters, {_id: clusterId});
-                                                });
-                                            });
+                    result.caches = caches;
 
-                                            _.forEach(igfss, function (igfs) {
-                                                // Remove deleted caches.
-                                                igfs.clusters = _.filter(igfs.clusters, function (clusterId) {
-                                                    return _.find(clusters, {_id: clusterId});
-                                                });
-                                            });
+                    return mongo.Igfs.find({space: {$in: spaceIds}}).sort('name').lean().exec();
+                })
+                .then((igfss) => {
+                    result.igfss = igfss;
 
-                                            _.forEach(clusters, function (cluster) {
-                                                // Remove deleted caches.
-                                                cluster.caches = _.filter(cluster.caches, function (cacheId) {
-                                                    return _.find(caches, {_id: cacheId});
-                                                });
+                    return mongo.Cluster.find({space: {$in: spaceIds}}).sort('name').deepPopulate(mongo.ClusterDefaultPopulate).lean().exec();
+                })
+                .then((clusters) => {
+                    result.clusters = clusters;
 
-                                                // Remove deleted IGFS.
-                                                cluster.igfss = _.filter(cluster.igfss, function (igfsId) {
-                                                    return _.findIndex(igfss, function (igfs) {
-                                                            return igfs._id.equals(igfsId);
-                                                        }) >= 0;
-                                                });
-                                            });
-
-                                            res.json({
-                                                spaces: spaces,
-                                                caches: caches,
-                                                igfss: igfss,
-                                                clusters: clusters
-                                            });
-                                        }
-                                    });
-                            });
-                        }
-                    });
-                }
-            });
+                    res.json(result);
+                })
+                .catch((err) => mongo.handleError(res, err));
         });
 
         /**
          * Save cluster.
          */
-        router.post('/save', function (req, res) {
-            var params = req.body;
-            var clusterId = params._id;
-            var caches = params.caches;
+        router.post('/save', (req, res) => {
+            const params = req.body;
+            const caches = params.caches;
+            const igfss = params.igfss;
+            let clusterId = params._id;
 
-            if (params._id)
-                mongo.Cluster.update({_id: params._id}, params, {upsert: true}, function (err) {
-                    if (mongo.processed(err, res))
-                        mongo.Cache.update({_id: {$in: caches}}, {$addToSet: {clusters: clusterId}}, {multi: true}, function (err) {
-                            if (mongo.processed(err, res)) {
-                                mongo.Cache.update({_id: {$nin: caches}}, {$pull: {clusters: clusterId}}, {multi: true}, function (err) {
-                                    if (mongo.processed(err, res))
-                                        res.send(params._id);
-                                });
-                            }
-                        });
-                });
-            else {
-                mongo.Cluster.findOne({space: params.space, name: params.name}, function (err, cluster) {
-                    if (mongo.processed(err, res)) {
-                        if (cluster)
-                            return res.status(500).send('Cluster with name: "' + cluster.name + '" already exist.');
+            mongo.Cluster.findOne({space: params.space, name: params.name}).exec()
+                .then((_cluster) => {
+                    if (_cluster && clusterId !== _cluster._id.toString())
+                        return res.status(500).send('Cluster with name: "' + _cluster.name + '" already exist.');
 
-                        (new mongo.Cluster(params)).save(function (err, cluster) {
-                            if (mongo.processed(err, res)) {
-                                clusterId = cluster._id;
-
-                                mongo.Cache.update({_id: {$in: caches}}, {$addToSet: {clusters: clusterId}}, {multi: true}, function (err) {
-                                    if (mongo.processed(err, res))
-                                        res.send(clusterId);
-                                });
-                            }
-                        });
+                    if (clusterId) {
+                        return mongo.Cluster.update({_id: clusterId}, params, {upsert: true}).exec()
+                            .then(() => mongo.Cache.update({_id: {$in: caches}}, {$addToSet: {clusters: clusterId}}, {multi: true}).exec())
+                            .then(() => mongo.Cache.update({_id: {$nin: caches}}, {$pull: {clusters: clusterId}}, {multi: true}).exec())
+                            .then(() => mongo.Igfs.update({_id: {$in: igfss}}, {$addToSet: {clusters: clusterId}}, {multi: true}).exec())
+                            .then(() => mongo.Igfs.update({_id: {$nin: igfss}}, {$pull: {clusters: clusterId}}, {multi: true}).exec())
+                            .then(() => res.send(clusterId))
+                            .catch((err) => mongo.handleError(res, err));
                     }
+
+                    return (new mongo.Cluster(params)).save()
+                        .then((cluster) => {
+                            clusterId = cluster._id;
+
+                            return mongo.Cache.update({_id: {$in: caches}}, {$addToSet: {clusters: clusterId}}, {multi: true}).exec();
+                        })
+                        .then(() => mongo.Cache.update({_id: {$nin: caches}}, {$pull: {clusters: clusterId}}, {multi: true}).exec())
+                        .then(() => mongo.Igfs.update({_id: {$in: igfss}}, {$addToSet: {clusters: clusterId}}, {multi: true}).exec())
+                        .then(() => mongo.Igfs.update({_id: {$nin: igfss}}, {$pull: {clusters: clusterId}}, {multi: true}).exec())
+                        .then(() => res.send(clusterId))
+                        .catch((err) => mongo.handleError(res, err));
                 });
-            }
         });
 
         /**
          * Remove cluster by ._id.
          */
-        router.post('/remove', function (req, res) {
-            mongo.Cluster.remove(req.body, function (err) {
-                if (err)
-                    return res.status(500).send(err.message);
+        router.post('/remove', (req, res) => {
+            const params = req.body;
+            const clusterId = params._id;
 
-                res.sendStatus(200);
-            })
+            mongo.Cache.update({clusters: {$in: [clusterId]}}, {$pull: {clusters: clusterId}}, {multi: true}).exec()
+                .then(() => mongo.Igfs.update({clusters: {$in: [clusterId]}}, {$pull: {clusters: clusterId}}, {multi: true}).exec())
+                .then(() => mongo.Cluster.remove(params).exec())
+                .then(() => res.sendStatus(200))
+                .catch((err) => mongo.handleError(res, err));
         });
 
         /**
          * Remove all clusters.
          */
-        router.post('/remove/all', function (req, res) {
-            var user_id = req.currentUserId();
-
+        router.post('/remove/all', (req, res) => {
             // Get owned space and all accessed space.
-            mongo.Space.find({$or: [{owner: user_id}, {usedBy: {$elemMatch: {account: user_id}}}]}, function (err, spaces) {
-                if (mongo.processed(err, res)) {
-                    var space_ids = spaces.map(function (value) {
-                        return value._id;
-                    });
-
-                    mongo.Cluster.remove({space: {$in: space_ids}}, function (err) {
-                        if (err)
-                            return res.status(500).send(err.message);
-
-                        mongo.Cache.update({space: {$in: space_ids}}, {clusters: []}, {multi: true}, function (err) {
-                            if (mongo.processed(err, res))
-                                mongo.Igfs.update({space: {$in: space_ids}}, {clusters: []}, {multi: true}, function (err) {
-                                    if (mongo.processed(err, res))
-                                        res.sendStatus(200);
-                                });
-                        });
-                    })
-                }
-            });
+            mongo.spaceIds(req.currentUserId())
+                .then((spaceIds) => mongo.Cache.update({space: {$in: spaceIds}}, {clusters: []}, {multi: true}).exec()
+                    .then(() => mongo.Igfs.update({space: {$in: spaceIds}}, {clusters: []}, {multi: true}).exec())
+                    .then(() => mongo.Cluster.remove({space: {$in: spaceIds}}).exec())
+                )
+                .then(() => res.sendStatus(200))
+                .catch((err) => mongo.handleError(res, err));
         });
 
-        resolve(router);
+        factoryResolve(router);
     });
 };

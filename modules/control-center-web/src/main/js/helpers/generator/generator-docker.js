@@ -31,18 +31,18 @@ $generatorDocker.clusterDocker = function (cluster, version) {
         'ENV CONFIG_URI config/' + cluster.name + '-server.xml\n\n' +
         '# Copy ignite-http-rest from optional.\n' +
         'ENV OPTION_LIBS ignite-rest-http\n\n' +
-        '# Update packages and install maven, cpio.\n' +
+        '# Update packages and install maven.\n' +
         'RUN \\\n' +
         '   apt-get update && \\\n' +
-        '   apt-get install -y maven cpio\n\n' +
+        '   apt-get install -y maven\n\n' +
         '# Append project to container.\n' +
         'ADD . ' + cluster.name + '\n\n' +
-        '# Build project in container container.\n' +
+        '# Build project in container.\n' +
         'RUN mvn -f ' + cluster.name + '/pom.xml clean package -DskipTests\n\n' +
         '# Copy project jars to node classpath.\n' +
         'RUN mkdir $IGNITE_HOME/libs/' + cluster.name + ' && \\\n' +
-        '(cd ' + cluster.name +'/target &&  find . -name "*.jar" -type f | cpio -updm $IGNITE_HOME/libs/' + cluster.name + ') && \\\n' +
-        'cp -r ' + cluster.name + '/config/* $IGNITE_HOME/config\n'
+        '   find ' + cluster.name + '/target -name "*.jar" -type f -exec cp {} $IGNITE_HOME/libs/' + cluster.name + ' \\; && \\\n' +
+        '   cp -r ' + cluster.name + '/config/* $IGNITE_HOME/config\n'
 };
 
 

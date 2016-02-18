@@ -15,112 +15,84 @@
  * limitations under the License.
  */
 
+'use strict';
+
 // Fire me up!
 
 module.exports = {
     implements: 'admin-routes',
-    inject: ['require(lodash)', 'require(express)', 'require(nodemailer)', 'mongo']
+    inject: ['require(lodash)', 'require(express)', 'require(nodemailer)', 'settings', 'mail', 'mongo']
 };
 
-module.exports.factory = function (_, express, nodemailer, mongo) {
-    return new Promise((resolve) => {
-        const router = express.Router();
+module.exports.factory = function(_, express, nodemailer, settings, mail, mongo) {
+    return new Promise((factoryResolve) => {
+        const router = new express.Router();
 
         /**
          * Get list of user accounts.
          */
-        router.post('/list', function (req, res) {
-            mongo.Account.find({}).sort('username').exec(function (err, users) {
-                if (err)
-                    return res.status(500).send(err.message);
-
-                res.json(users);
-            });
+        router.post('/list', (req, res) => {
+            mongo.Account.find({}).sort('username').lean().exec()
+                .then((users) => res.json(users))
+                .catch((err) => mongo.handleError(res, err));
         });
 
         // Remove user.
-        router.post('/remove', function (req, res) {
-            var userId = req.body.userId;
+        router.post('/remove', (req, res) => {
+            const userId = req.body.userId;
 
-            mongo.Account.findByIdAndRemove(userId, function (err, user) {
-                if (err)
-                    return res.status(500).send(err.message);
-
-                mongo.Space.find({owner: userId}, function (err, spaces) {
-                    _.forEach(spaces, function (space) {
-                        mongo.Cluster.remove({space: space._id}).exec();
-                        mongo.Cache.remove({space: space._id}).exec();
-                        mongo.DomainModel.remove({space: space._id}).exec();
-                        mongo.Notebook.remove({space: space._id}).exec();
-                        mongo.Space.remove({owner: space._id}).exec();
-                    });
-                });
-
-                var transporter = {
-                    service: settings.smtp.service,
-                    auth: {
-                        user: settings.smtp.email,
-                        pass: settings.smtp.password
-                    }
-                };
-
-                if (transporter.service != '' || transporter.auth.user != '' || transporter.auth.pass != '') {
-                    var mailer = nodemailer.createTransport(transporter);
-
-                    var mailOptions = {
-                        from: settings.smtp.address(settings.smtp.username, settings.smtp.email),
-                        to: settings.smtp.address(user.username, user.email),
-                        subject: 'Your account was deleted',
-                        text: 'You are receiving this e-mail because admin remove your account.\n\n' +
-                        '--------------\n' +
-                        'Apache Ignite Web Console http://' + req.headers.host + '\n'
-                    };
-
-                    mailer.sendMail(mailOptions, function (err) {
-                        if (err)
-                            return res.status(503).send('Account was removed, but failed to send e-mail notification to user!<br />' + err);
-
-                        res.sendStatus(200);
-                    });
-                }
-                else
+            mongo.Account.findByIdAndRemove(userId).exec()
+                .then((user) => {
                     res.sendStatus(200);
-            });
+
+                    return mongo.spaceIds(userId)
+                        .then((spaceIds) => Promise.all([
+                            mongo.Cluster.remove({space: {$in: spaceIds}}).exec(),
+                            mongo.Cache.remove({space: {$in: spaceIds}}).exec(),
+                            mongo.DomainModel.remove({space: {$in: spaceIds}}).exec(),
+                            mongo.Notebook.remove({space: {$in: spaceIds}}).exec(),
+                            mongo.Space.remove({owner: userId}).exec()
+                        ]))
+                        .then(() => user)
+                        .catch((err) => console.error(`Failed to cleanup spaces [user=${user.username}, err=${err}`));
+                })
+                .then((user) =>
+                    mail.send(user, 'Your account was deleted',
+                        `Hello ${user.username}!<br><br>` +
+                        `You are receiving this email because your account for <a href="http://${req.headers.host}">${settings.smtp.username}</a> was removed.`,
+                        'Account was removed, but failed to send email notification to user!')
+                )
+                .catch((err) => mongo.handleError(res, err));
         });
 
         // Save user.
-        router.post('/save', function (req, res) {
-            var userId = req.body.userId;
-            var adminFlag = req.body.adminFlag;
+        router.post('/save', (req, res) => {
+            const params = req.body;
 
-            mongo.Account.findByIdAndUpdate(userId, {admin: adminFlag}, function (err) {
-                if (err)
-                    return res.status(500).send(err.message);
-
-                res.sendStatus(200);
-            });
+            mongo.Account.findByIdAndUpdate(params.userId, {admin: params.adminFlag}).exec()
+                .then(() => res.sendStatus(200))
+                .catch((err) => mongo.handleError(res, err));
         });
 
         // Become user.
-        router.get('/become', function (req, res) {
-            mongo.Account.findById(req.query.viewedUserId).exec(function (err, viewedUser) {
-                if (err)
-                    return res.sendStatus(404);
+        router.get('/become', (req, res) => {
+            mongo.Account.findById(req.query.viewedUserId).exec()
+                .then((viewedUser) => {
+                    req.session.viewedUser = viewedUser;
 
-                req.session.viewedUser = viewedUser;
-
-                return res.sendStatus(200);
-            })
+                    res.sendStatus(200);
+                })
+                .catch(() => res.sendStatus(404));
         });
 
-        // Become user.
-        router.get('/revert/identity', function (req, res) {
+        // Revert to your identity.
+        router.get('/revert/identity', (req, res) => {
             req.session.viewedUser = null;
 
             return res.sendStatus(200);
         });
 
-        resolve(router);
+        factoryResolve(router);
     });
 };
 

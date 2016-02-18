@@ -83,7 +83,12 @@ consoleModule.controller('domainsController', function ($filter, $http, $timeout
                             $http.post('/api/v1/configuration/domains/list')
                                 .success(function (data) {
                                     $scope.spaces = data.spaces;
-                                    $scope.clusters = data.clusters;
+                                    $scope.clusters = _.map(data.clusters, function (cluster) {
+                                        return {
+                                            value: cluster._id,
+                                            label: cluster.name
+                                        };
+                                    });
                                     $scope.caches = _mapCaches(data.caches);
                                     $scope.domains = data.domains;
 
@@ -92,9 +97,9 @@ consoleModule.controller('domainsController', function ($filter, $http, $timeout
                                     _.forEach($scope.clusters, function (cluster) {
                                         $scope.ui.generatedCachesClusters.push(cluster.value);
                                     });
-                                });
 
-                            restoreSelection();
+                                    restoreSelection();
+                                });
                         })
                         .error(function (errMsg) {
                             $common.showError(errMsg);
@@ -852,7 +857,7 @@ consoleModule.controller('domainsController', function ($filter, $http, $timeout
                                 name: idx.name, indexType: 'SORTED', fields: _.map(fields, function (fieldName) {
                                     return {
                                         name: toJavaName(fieldName),
-                                        direction: !idx.fields[fieldName]
+                                        direction: idx.fields[fieldName]
                                     };
                                 })
                             });
@@ -1053,12 +1058,13 @@ consoleModule.controller('domainsController', function ($filter, $http, $timeout
 
             switch ($scope.importDomain.action) {
                 case 'schemas':
-                    res = $common.isEmptyArray($scope.importDomain.schemas) || $('#importSchemasData').find(':checked').length > 0;
+                    res = $common.isEmptyArray($scope.importDomain.schemas) ||
+                        _.find($scope.importDomain.schemas, {use: true});
 
                     break;
 
                 case 'tables':
-                    res = $('#importTableData').find(':checked').length > 0;
+                    res = _.find($scope.importDomain.tables, {use: true});
 
                     break;
             }
@@ -1136,7 +1142,12 @@ consoleModule.controller('domainsController', function ($filter, $http, $timeout
         $http.post('/api/v1/configuration/domains/list')
             .success(function (data) {
                 $scope.spaces = data.spaces;
-                $scope.clusters = data.clusters;
+                $scope.clusters = _.map(data.clusters, function (cluster) {
+                    return {
+                        value: cluster._id,
+                        label: cluster.name
+                    };
+                });
                 $scope.caches = _mapCaches(data.caches);
                 $scope.domains = data.domains;
 

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+'use strict';
+
 // Fire me up!
 
 module.exports = {
@@ -29,21 +31,22 @@ module.exports = {
  * @param fs
  * @param JSZip
  * @param settings
- * @param {AgentManager} agent
+ * @param {AgentManager} agentMgr
  * @returns {Promise}
  */
-module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings, agent) {
-    return new Promise((resolve) => {
-        const router = express.Router();
+module.exports.factory = function(_, express, apacheIgnite, fs, JSZip, settings, agentMgr) {
+    return new Promise((resolveFactory) => {
+        const router = new express.Router();
 
-        const SqlFieldsQuery = apacheIgnite.SqlFieldsQuery, ScanQuery = apacheIgnite.ScanQuery;
+        const SqlFieldsQuery = apacheIgnite.SqlFieldsQuery;
+        const ScanQuery = apacheIgnite.ScanQuery;
 
         const _client = (userId) => {
-            return new Promise(function (resolve, reject) {
-                var client = agent.findClient(userId);
+            return new Promise((resolve, reject) => {
+                const agent = agentMgr.findClient(userId);
 
-                if (client)
-                    return resolve(client);
+                if (agent)
+                    return resolve(agent);
 
                 reject({code: 503, message: 'Connection to Ignite Web Agent is not established'});
             });
@@ -54,34 +57,34 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
         };
 
         const _handleException = (res) => {
-            return function (error) {
+            return (error) => {
                 if (_.isObject(error))
                     return res.status(error.code).send(error.message);
 
                 return res.status(500).send(error);
-            }
+            };
         };
 
         /* Get grid topology. */
-        router.get('/download/zip', function (req, res) {
-            var agentFld = settings.agent.file;
-            var agentZip = agentFld + '.zip';
-            var agentPathZip = 'public/agent/' + agentFld + '.zip';
+        router.get('/download/zip', (req, res) => {
+            const agentFld = settings.agent.file;
+            const agentZip = agentFld + '.zip';
+            const agentPathZip = 'public/agent/' + agentFld + '.zip';
 
-            fs.stat(agentPathZip, function (err, stats) {
+            fs.stat(agentPathZip, (err, stats) => {
                 if (err)
                     return res.download(agentPathZip, agentZip);
 
                 // Read a zip file.
-                fs.readFile(agentPathZip, function (err, data) {
-                    if (err)
+                fs.readFile(agentPathZip, (errFs, data) => {
+                    if (errFs)
                         return res.download(agentPathZip, agentZip);
 
-                    var zip = new JSZip(data);
+                    const zip = new JSZip(data);
 
-                    var prop = [];
+                    const prop = [];
 
-                    var host = req.hostname.match(/:/g) ? req.hostname.slice(0, req.hostname.indexOf(':')) : req.hostname;
+                    const host = req.hostname.match(/:/g) ? req.hostname.slice(0, req.hostname.indexOf(':')) : req.hostname;
 
                     prop.push('token=' + req.user.token);
                     prop.push('server-uri=wss://' + host + ':' + settings.agent.port);
@@ -89,12 +92,12 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
                     prop.push('#node-uri=http://localhost:8080');
                     prop.push('#driver-folder=./jdbc-drivers');
                     prop.push('');
-                    prop.push("#Note: Don't change this auto generated line");
+                    prop.push('#Note: Do not change this auto generated line');
                     prop.push('rel-date=' + stats.birthtime.getTime());
 
                     zip.file(agentFld + '/default.properties', prop.join('\n'));
 
-                    var buffer = zip.generate({type: 'nodebuffer', platform: 'UNIX'});
+                    const buffer = zip.generate({type: 'nodebuffer', platform: 'UNIX'});
 
                     // Set the archive name.
                     res.attachment(agentZip);
@@ -105,7 +108,7 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
         });
 
         /* Get grid topology. */
-        router.post('/topology', function (req, res) {
+        router.post('/topology', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => client.ignite(req.body.demo).cluster(req.body.attr, req.body.mtr))
                 .then((clusters) => res.json(clusters))
@@ -113,16 +116,16 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
         });
 
         /* Execute query. */
-        router.post('/query', function (req, res) {
+        router.post('/query', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => {
                     // Create sql query.
-                    var qry = new SqlFieldsQuery(req.body.query);
+                    const qry = new SqlFieldsQuery(req.body.query);
 
                     // Set page size for query.
                     qry.setPageSize(req.body.pageSize);
 
-                    return client.ignite(req.body.demo).cache(req.body.cacheName).query(qry).nextPage()
+                    return client.ignite(req.body.demo).cache(req.body.cacheName).query(qry).nextPage();
                 })
                 .then((cursor) => res.json({
                     meta: cursor.fieldsMetadata(),
@@ -133,7 +136,7 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
         });
 
         /* Execute query getAll. */
-        router.post('/query/getAll', function (req, res) {
+        router.post('/query/getAll', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => {
                     // Create sql query.
@@ -145,26 +148,24 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
                     // Get query cursor.
                     const cursor = client.ignite(req.body.demo).cache(req.body.cacheName).query(qry);
 
-                    return new Promise(function (resolve) {
-                        cursor.getAll().then(rows => resolve({meta: cursor.fieldsMetadata(), rows}))
-                    });
+                    return cursor.getAll()
+                        .then((rows) => res.json({meta: cursor.fieldsMetadata(), rows}));
                 })
-                .then(response => res.json(response))
                 .catch(_handleException(res));
         });
 
         /* Execute query. */
-        router.post('/scan', function (req, res) {
+        router.post('/scan', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => {
                     // Create sql query.
-                    var qry = new ScanQuery();
+                    const qry = new ScanQuery();
 
                     // Set page size for query.
                     qry.setPageSize(req.body.pageSize);
 
                     // Get query cursor.
-                    return client.ignite(req.body.demo).cache(req.body.cacheName).query(qry).nextPage()
+                    return client.ignite(req.body.demo).cache(req.body.cacheName).query(qry).nextPage();
                 })
                 .then((cursor) => res.json({
                     meta: cursor.fieldsMetadata(),
@@ -175,103 +176,109 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
         });
 
         /* Get next query page. */
-        router.post('/query/fetch', function (req, res) {
+        router.post('/query/fetch', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => {
-                    var cache = client.ignite(req.body.demo).cache(req.body.cacheName);
+                    const cache = client.ignite(req.body.demo).cache(req.body.cacheName);
 
-                    var cmd = cache._createCommand('qryfetch')
+                    const cmd = cache._createCommand('qryfetch')
                         .addParam('qryId', req.body.queryId)
                         .addParam('pageSize', req.body.pageSize);
 
                     return cache.__createPromise(cmd);
                 })
-                .then((page) => res.json({rows: page['items'], last: page === null || page['last']}))
+                .then((page) => res.json({rows: page.items, last: page === null || page.last}))
                 .catch(_handleException(res));
         });
 
         /* Close query cursor by id. */
-        router.post('/query/close', function (req, res) {
+        router.post('/query/close', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => {
-                    var cache = client.ignite(req.body.demo).cache(req.body.cacheName);
+                    const cache = client.ignite(req.body.demo).cache(req.body.cacheName);
 
-                    return cache.__createPromise(cache._createCommand('qrycls').addParam('qryId', req.body.queryId))
+                    return cache.__createPromise(cache._createCommand('qrycls').addParam('qryId', req.body.queryId));
                 })
                 .then(() => res.sendStatus(200))
                 .catch(_handleException(res));
         });
 
         /* Get metadata for cache. */
-        router.post('/cache/metadata', function (req, res) {
+        router.post('/cache/metadata', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => client.ignite(req.body.demo).cache(req.body.cacheName).metadata())
                 .then((caches) => {
-                    var types = [];
+                    let types = [];
 
-                    for (var meta of caches) {
-                        var cacheTypes = meta.types.map(function (typeName) {
-                            var fields = meta.fields[typeName];
+                    const _typeMapper = (meta, typeName) => {
+                        let fields = meta.fields[typeName];
 
-                            var columns = [];
+                        let columns = [];
 
-                            for (var fieldName in fields) {
-                                var fieldClass = _compact(fields[fieldName]);
+                        for (const fieldName in fields) {
+                            if (fields.hasOwnProperty(fieldName)) {
+                                const fieldClass = _compact(fields[fieldName]);
 
                                 columns.push({
                                     type: 'field',
                                     name: fieldName,
                                     clazz: fieldClass,
-                                    system: fieldName == "_KEY" || fieldName == "_VAL",
+                                    system: fieldName === '_KEY' || fieldName === '_VAL',
                                     cacheName: meta.cacheName,
-                                    typeName: typeName
+                                    typeName
+                                });
+                            }
+                        }
+
+                        const indexes = [];
+
+                        for (const index of meta.indexes[typeName]) {
+                            fields = [];
+
+                            for (const field of index.fields) {
+                                fields.push({
+                                    type: 'index-field',
+                                    name: field,
+                                    order: index.descendings.indexOf(field) < 0,
+                                    unique: index.unique,
+                                    cacheName: meta.cacheName,
+                                    typeName
                                 });
                             }
 
-                            var indexes = [];
-
-                            for (var index of meta.indexes[typeName]) {
-                                fields = [];
-
-                                for (var field of index.fields) {
-                                    fields.push({
-                                        type: 'index-field',
-                                        name: field,
-                                        order: index.descendings.indexOf(field) < 0,
-                                        unique: index.unique,
-                                        cacheName: meta.cacheName,
-                                        typeName: typeName
-                                    });
-                                }
-
-                                if (fields.length > 0)
-                                    indexes.push({
-                                        type: 'index',
-                                        name: index.name,
-                                        children: fields,
-                                        cacheName: meta.cacheName,
-                                        typeName: typeName
-                                    });
-                            }
-
-                            columns = _.sortBy(columns, 'name');
-
-                            if (!_.isEmpty(indexes))
-                                columns = columns.concat({
-                                    type: 'indexes',
-                                    name: 'Indexes',
+                            if (fields.length > 0) {
+                                indexes.push({
+                                    type: 'index',
+                                    name: index.name,
+                                    children: fields,
                                     cacheName: meta.cacheName,
-                                    typeName: typeName,
-                                    children: indexes
+                                    typeName
                                 });
+                            }
+                        }
 
-                            return {
-                                type: 'type',
-                                cacheName: meta.cacheName || "",
-                                typeName: typeName,
-                                children: columns
-                            };
-                        });
+                        columns = _.sortBy(columns, 'name');
+
+                        if (!_.isEmpty(indexes)) {
+                            columns = columns.concat({
+                                type: 'indexes',
+                                name: 'Indexes',
+                                cacheName: meta.cacheName,
+                                typeName,
+                                children: indexes
+                            });
+                        }
+
+                        return {
+                            type: 'type',
+                            cacheName: meta.cacheName || '',
+                            typeName,
+                            children: columns
+                        };
+                    };
+
+                    for (const meta of caches) {
+                        const cacheTypes = meta.types.map(_typeMapper.bind(null, meta));
 
                         if (!_.isEmpty(cacheTypes))
                             types = types.concat(cacheTypes);
@@ -283,14 +290,14 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
         });
 
         /* Ping client. */
-        router.post('/ping', function (req, res) {
+        router.post('/ping', (req, res) => {
             _client(req.currentUserId())
                 .then(() => res.sendStatus(200))
                 .catch(_handleException(res));
         });
 
         /* Get JDBC drivers list. */
-        router.post('/drivers', function (req, res) {
+        router.post('/drivers', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => client.availableDrivers())
                 .then((arr) => res.json(arr))
@@ -298,34 +305,34 @@ module.exports.factory = function (_, express, apacheIgnite, fs, JSZip, settings
         });
 
         /** Get database schemas. */
-        router.post('/schemas', function (req, res) {
+        router.post('/schemas', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => {
-                    var args = req.body;
+                    const args = req.body;
 
                     args.jdbcInfo = {user: args.user, password: args.password};
 
-                    return client.metadataSchemas(args.jdbcDriverJar, args.jdbcDriverClass, args.jdbcUrl, args.jdbcInfo)
+                    return client.metadataSchemas(args.jdbcDriverJar, args.jdbcDriverClass, args.jdbcUrl, args.jdbcInfo);
                 })
                 .then((arr) => res.json(arr))
                 .catch(_handleException(res));
         });
 
         /** Get database tables. */
-        router.post('/tables', function (req, res) {
+        router.post('/tables', (req, res) => {
             _client(req.currentUserId())
                 .then((client) => {
-                    var args = req.body;
+                    const args = req.body;
 
                     args.jdbcInfo = {user: args.user, password: args.password};
 
-                    return client.metadataTables(args.jdbcDriverJar, args.jdbcDriverClass, args.jdbcUrl, args.jdbcInfo, args.schemas, args.tablesOnly)
+                    return client.metadataTables(args.jdbcDriverJar, args.jdbcDriverClass, args.jdbcUrl, args.jdbcInfo, args.schemas, args.tablesOnly);
                 })
                 .then((arr) => res.json(arr))
                 .catch(_handleException(res));
         });
 
-        resolve(router);
+        resolveFactory(router);
     });
 };
 

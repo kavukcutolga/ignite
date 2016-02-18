@@ -730,6 +730,12 @@ consoleModule.service('$common', [
             return DS_CHECK_SUCCESS;
         }
 
+        function toJavaName(prefix, name) {
+            var javaName = name ? name.replace(/[^A-Za-z_0-9]+/g, '_') : 'dflt';
+
+            return prefix + javaName.charAt(0).toLocaleUpperCase() + javaName.slice(1);
+        }
+
         return {
             getModel: getModel,
             joinTip: function (arr) {
@@ -1095,7 +1101,7 @@ consoleModule.service('$common', [
                         cacheStoreFactory: {
                             kind: 'CacheJdbcPojoStoreFactory',
                             CacheJdbcPojoStoreFactory: {
-                                dataSourceBean: cache.name + 'DS',
+                                dataSourceBean: toJavaName('ds', cache.name),
                                 dialect: 'Generic'
                             }
                         },
@@ -2020,7 +2026,7 @@ consoleModule.controller('resetPassword', [
     '$scope', '$modal', '$http', '$common', '$focus', 'Auth', '$state',
     function ($scope, $modal, $http, $common, $focus, Auth, $state) {
         if ($state.params.token)
-            $http.post('/api/v1/validate/token', {token: $state.params.token})
+            $http.post('/api/v1/password/validate/token', {token: $state.params.token})
                 .success(function (res) {
                     $scope.email = res.email;
                     $scope.token = res.token;
@@ -2053,7 +2059,7 @@ consoleModule.controller('resetPassword', [
 consoleModule.controller('auth', ['$scope', '$focus', 'Auth', 'IgniteCountries', function ($scope, $focus, Auth, countries) {
     $scope.auth = Auth.auth;
 
-    $scope.action = 'login';
+    $scope.action = 'signin';
     $scope.countries = countries;
 
     $focus('user_email');
@@ -2100,6 +2106,7 @@ consoleModule.service('$agentDownload', [
 
             lnk.setAttribute('href', '/api/v1/agent/download/zip');
             lnk.setAttribute('target', '_self');
+            lnk.setAttribute('download', null);
             lnk.style.display = 'none';
 
             document.body.appendChild(lnk);
@@ -2121,7 +2128,7 @@ consoleModule.service('$agentDownload', [
                 _modal.skipSingleError = false;
             else if (!_modal.$isShown) {
                 // Don't show missing node dialog on SQL demo enabling.
-                if (_modal.check.params && _modal.check.params.demo && timedOut)
+                if (_modal.check.params && _modal.check.params.demo && timedOut || !_modal.updatePromise)
                     return;
 
                 $loading.finish('loading');
@@ -2158,6 +2165,8 @@ consoleModule.service('$agentDownload', [
          */
         function _stopInterval() {
             $interval.cancel(_modal.updatePromise);
+
+            _modal.updatePromise = null;
         }
 
         /**

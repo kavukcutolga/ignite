@@ -594,6 +594,9 @@ $generatorJava.clusterBinary = function (cluster, res) {
         if ($commonUtils.isDefinedAndNotEmpty(binary.idMapper))
             res.line(varName + '.setIdMapper(new ' + res.importClass(binary.idMapper) + '());');
 
+        if ($commonUtils.isDefinedAndNotEmpty(binary.nameMapper))
+            res.line(varName + '.setNameMapper(new ' + res.importClass(binary.nameMapper) + '());');
+
         if ($commonUtils.isDefinedAndNotEmpty(binary.serializer))
             res.line(varName + '.setSerializer(new ' + res.importClass(binary.serializer) + '());');
 
@@ -662,6 +665,9 @@ $generatorJava.binaryTypeConfiguration = function (type, res) {
 
     if ($commonUtils.isDefinedAndNotEmpty(type.idMapper))
         res.line(typeVar + '.setIdMapper(new ' + res.importClass(type.idMapper) + '());');
+
+    if ($commonUtils.isDefinedAndNotEmpty(type.nameMapper))
+        res.line(typeVar + '.setNameMapper(new ' + res.importClass(type.nameMapper) + '());');
 
     if ($commonUtils.isDefinedAndNotEmpty(type.serializer))
         res.line(typeVar + '.setSerializer(new ' + res.importClass(type.serializer) + '());');
@@ -972,7 +978,7 @@ $generatorJava.clusterTransactions = function (cluster, res) {
 
     $generatorJava.beanProperty(res, 'cfg', cluster.transactionConfiguration, 'transactionConfiguration',
         'transactionConfiguration', $generatorCommon.TRANSACTION_CONFIGURATION.className,
-        $generatorCommon.TRANSACTION_CONFIGURATION.fields, true);
+        $generatorCommon.TRANSACTION_CONFIGURATION.fields, false);
 
     return res;
 };
@@ -2067,21 +2073,14 @@ $generatorJava.javaClassCode = function (domain, key, pkg, useConstructor, inclu
     res.line('/** {@inheritDoc} */');
     res.startBlock('@Override public String toString() {');
 
-    if (allFields.length > 0) {
-        var field = allFields[0];
+    _.forEach(allFields, function (field, idx) {
+        if (idx === 0)
+            res.startBlock('return \"' + type + ' [' + field.javaFieldName + '=\" + ' + field.javaFieldName + ' +', type);
+        else
+            res.line('\", ' + field.javaFieldName + '=\" + ' + field.javaFieldName + ' +');
+    });
 
-        res.startBlock('return \"' + type + ' [' + field.javaFieldName + '=\" + ' + field.javaFieldName + ' +', type);
-
-        for (fldIx = 1; fldIx < allFields.length; fldIx ++) {
-            field = allFields[fldIx];
-
-            var javaName = field.javaFieldName;
-
-            res.line('\", ' + javaName + '=\" + ' + field.javaFieldName + ' +');
-        }
-    }
-
-    res.line('\']\';');
+    res.line('"]";');
     res.endBlock();
     res.endBlock('}');
 
@@ -2564,6 +2563,12 @@ $generatorJava.dataSourceClassName = function (res, storeFactory) {
     return undefined;
 };
 
+var MAX_PARKING_CNT = 5;
+var MAX_CAR_CNT = 10;
+var MAX_COUNTRY_CNT = 5;
+var MAX_DEPARTMENT_CNT = 5;
+var MAX_EMPLOYE_CNT = 10;
+
 // Defined queries for demo data.
 var PREDEFINED_QUERIES = [
     {
@@ -2573,10 +2578,14 @@ var PREDEFINED_QUERIES = [
             'ID       INTEGER     NOT NULL PRIMARY KEY,\n' +
             'NAME     VARCHAR(50) NOT NULL,\n' +
             'CAPACITY INTEGER NOT NULL)',
-        fill: 'DELETE FROM CARS.PARKING;\n' +
-            'INSERT INTO CARS.PARKING(ID, NAME, CAPACITY) VALUES(0, \'Parking #1\', 10);\n' +
-            'INSERT INTO CARS.PARKING(ID, NAME, CAPACITY) VALUES(1, \'Parking #2\', 20);\n' +
-            'INSERT INTO CARS.PARKING(ID, NAME, CAPACITY) VALUES(2, \'Parking #3\', 30)',
+        fillQuery: function () {
+            var queries = ['DELETE FROM CARS.PARKING;'];
+
+            for (var id = 0; id < MAX_PARKING_CNT; id++)
+                queries.push('INSERT INTO CARS.PARKING(ID, NAME, CAPACITY) VALUES(' + id + ', \'Parking #' + (id + 1) +  '\', 10);');
+
+            return queries;
+        },
         selectQuery: [
             "SELECT * FROM PARKING WHERE CAPACITY >= 20"
         ]
@@ -2588,16 +2597,14 @@ var PREDEFINED_QUERIES = [
             'ID         INTEGER NOT NULL PRIMARY KEY,\n' +
             'PARKING_ID INTEGER NOT NULL,\n' +
             'NAME       VARCHAR(50) NOT NULL);',
-        fill: 'DELETE FROM CARS.CAR;\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(0, 0, \'Car #1\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(1, 0, \'Car #2\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(2, 0, \'Car #3\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(3, 1, \'Car #4\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(4, 1, \'Car #5\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(5, 2, \'Car #6\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(6, 2, \'Car #7\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(7, 2, \'Car #8\');\n' +
-            'INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(8, 2, \'Car #9\')',
+        fillQuery: function () {
+            var queries = ['DELETE FROM CARS.CAR;'];
+
+            for (var id = 0; id < MAX_CAR_CNT; id++)
+                queries.push('INSERT INTO CARS.CAR(ID, PARKING_ID, NAME) VALUES(' + id + ', ' + Math.floor(Math.random() * MAX_PARKING_CNT) + ', \'Car #' + (id + 1) + '\');');
+
+            return queries;
+        },
         selectQuery: [
             "SELECT * FROM CAR WHERE PARKINGID = 2"
         ]
@@ -2608,10 +2615,14 @@ var PREDEFINED_QUERIES = [
             'ID         INTEGER NOT NULL PRIMARY KEY,\n' +
             'NAME       VARCHAR(50),\n' +
             'POPULATION INTEGER NOT NULL);',
-        fill: 'DELETE FROM COUNTRY;\n' +
-            'INSERT INTO COUNTRY(ID, NAME, POPULATION) VALUES(0, \'Country #1\', 10000000);\n' +
-            'INSERT INTO COUNTRY(ID, NAME, POPULATION) VALUES(1, \'Country #2\', 20000000);\n' +
-            'INSERT INTO COUNTRY(ID, NAME, POPULATION) VALUES(2, \'Country #3\', 30000000);',
+        fillQuery: function () {
+            var queries = ['DELETE FROM COUNTRY;'];
+
+            for (var id = 0; id < MAX_COUNTRY_CNT; id++)
+                queries.push('INSERT INTO COUNTRY(ID, NAME, POPULATION) VALUES(' + id + ', \'Country #' + (id + 1) + '\', ' + ((id + 1) * 10000000) + ');');
+
+            return queries;
+        },
         selectQuery: [
             "SELECT * FROM COUNTRY WHERE POPULATION BETWEEN 15000000 AND 25000000"
         ]
@@ -2622,13 +2633,14 @@ var PREDEFINED_QUERIES = [
             'ID         INTEGER NOT NULL PRIMARY KEY,\n' +
             'COUNTRY_ID INTEGER NOT NULL,\n' +
             'NAME       VARCHAR(50) NOT NULL);',
-        fill: 'DELETE FROM DEPARTMENT;\n' +
-            'INSERT INTO DEPARTMENT(ID, COUNTRY_ID, NAME) VALUES(0, 0, \'Department #1\');\n' +
-            'INSERT INTO DEPARTMENT(ID, COUNTRY_ID, NAME) VALUES(1, 0, \'Department #2\');\n' +
-            'INSERT INTO DEPARTMENT(ID, COUNTRY_ID, NAME) VALUES(2, 2, \'Department #3\');\n' +
-            'INSERT INTO DEPARTMENT(ID, COUNTRY_ID, NAME) VALUES(3, 1, \'Department #4\');\n' +
-            'INSERT INTO DEPARTMENT(ID, COUNTRY_ID, NAME) VALUES(4, 1, \'Department #5\');\n' +
-            'INSERT INTO DEPARTMENT(ID, COUNTRY_ID, NAME) VALUES(5, 1, \'Department #6\');',
+        fillQuery: function () {
+            var queries = ['DELETE FROM DEPARTMENT;'];
+
+            for (var id = 0; id < MAX_DEPARTMENT_CNT; id++)
+                queries.push('INSERT INTO DEPARTMENT(ID, COUNTRY_ID, NAME) VALUES(' + id + ', ' + Math.floor(Math.random() * MAX_COUNTRY_CNT) + ', \'Department #' + (id + 1) + '\');');
+
+            return queries;
+        },
         selectQuery: [
             "SELECT * FROM DEPARTMENT"
         ]
@@ -2646,24 +2658,24 @@ var PREDEFINED_QUERIES = [
             'HIRE_DATE     DATE        NOT NULL,\n' +
             'JOB           VARCHAR(50) NOT NULL,\n' +
             'SALARY        DOUBLE);',
-        fill: 'DELETE FROM EMPLOYEE;\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(0, 0, \'First name manager #1\', \'Last name manager #1\', \'Email manager #1\', \'Phone number manager #1\', \'2014-01-01\', \'Job manager #1\', 1100.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(1, 1, \'First name manager #2\', \'Last name manager #2\', \'Email manager #2\', \'Phone number manager #2\', \'2014-01-01\', \'Job manager #2\', 2100.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(2, 2, \'First name manager #3\', \'Last name manager #3\', \'Email manager #3\', \'Phone number manager #3\', \'2014-01-01\', \'Job manager #3\', 3100.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(3, 3, \'First name manager #4\', \'Last name manager #4\', \'Email manager #4\', \'Phone number manager #4\', \'2014-01-01\', \'Job manager #4\', 1500.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(4, 4, \'First name manager #5\', \'Last name manager #5\', \'Email manager #5\', \'Phone number manager #5\', \'2014-01-01\', \'Job manager #5\', 1700.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(5, 5, \'First name manager #6\', \'Last name manager #6\', \'Email manager #6\', \'Phone number manager #6\', \'2014-01-01\', \'Job manager #6\', 1300.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(101, 0, 0, \'First name employee #1\', \'Last name employee #1\', \'Email employee #1\', \'Phone number employee #1\', \'2014-01-01\', \'Job employee #1\', 600.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(102, 0, 0, \'First name employee #2\', \'Last name employee #2\', \'Email employee #2\', \'Phone number employee #2\', \'2014-01-01\', \'Job employee #2\', 1600.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(103, 1, 1, \'First name employee #3\', \'Last name employee #3\', \'Email employee #3\', \'Phone number employee #3\', \'2014-01-01\', \'Job employee #3\', 2600.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(104, 2, 2, \'First name employee #4\', \'Last name employee #4\', \'Email employee #4\', \'Phone number employee #4\', \'2014-01-01\', \'Job employee #4\', 1000.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(105, 2, 2, \'First name employee #5\', \'Last name employee #5\', \'Email employee #5\', \'Phone number employee #5\', \'2014-01-01\', \'Job employee #5\', 1200.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(106, 2, 2, \'First name employee #6\', \'Last name employee #6\', \'Email employee #6\', \'Phone number employee #6\', \'2014-01-01\', \'Job employee #6\', 800.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(107, 3, 3, \'First name employee #7\', \'Last name employee #7\', \'Email employee #7\', \'Phone number employee #7\', \'2014-01-01\', \'Job employee #7\', 1400.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(108, 4, 4, \'First name employee #8\', \'Last name employee #8\', \'Email employee #8\', \'Phone number employee #8\', \'2014-01-01\', \'Job employee #8\', 800.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(109, 4, 4, \'First name employee #9\', \'Last name employee #9\', \'Email employee #9\', \'Phone number employee #9\', \'2014-01-01\', \'Job employee #9\', 1490.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(110, 4, 4, \'First name employee #10\', \'Last name employee #12\', \'Email employee #10\', \'Phone number employee #10\', \'2014-01-01\', \'Job employee #10\', 1600.00);\n' +
-            'INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(111, 5, 5, \'First name employee #11\', \'Last name employee #11\', \'Email employee #11\', \'Phone number employee #11\', \'2014-01-01\', \'Job employee #11\', 400.00);',
+        fillQuery: function () {
+            var queries = ['DELETE FROM EMPLOYEE;'];
+
+            for (var id = 0; id < MAX_DEPARTMENT_CNT; id++)
+                queries.push('INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(' +
+                        id + ', ' + id + ', \'First name manager #' + (id + 1) + '\', \'Last name manager #' + (id + 1) + '\', \'Email manager #' +
+                        (id + 1) + '\', \'Phone number manager #' + (id + 1) + '\', \'2014-01-01\', \'Job manager #' + (id + 1) + '\', ' + (1100 + 50 * id) + ');');
+
+            for (id = 0; id < MAX_EMPLOYE_CNT; id++) {
+                var depId = Math.floor(Math.random() * MAX_DEPARTMENT_CNT);
+
+                queries.push('INSERT INTO EMPLOYEE(ID, DEPARTMENT_ID, MANAGER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, HIRE_DATE, JOB, SALARY) VALUES(' +
+                    (100 + id) + ', ' + depId + ', ' + depId + ', \'First name employee #' + (id + 1) + '\', \'Last name employee #' + (id + 1) + '\', \'Email employee #' +
+                    (id + 1) + '\', \'Phone number employee #' + (id + 1) + '\', \'2014-01-01\', \'Job employee #' + (id + 1) + '\', ' + (600 + 50 * id + 50 * depId) + ');');
+            }
+
+            return queries;
+        },
         selectQuery: [
             "SELECT * FROM EMPLOYEE WHERE MANAGERID IS NOT NULL"
         ]
@@ -2775,7 +2787,7 @@ $generatorJava.generateExample = function (cluster, res, factoryCls) {
                             _prepareStatement(res, conVar, 'CREATE SCHEMA IF NOT EXISTS ' + desc.schema);
 
                         _prepareStatement(res, conVar, desc.create);
-                        _prepareStatement(res, conVar, desc.fill);
+                        _prepareStatement(res, conVar, desc.fillQuery().join('\n'));
 
                         res.line(conVar + '.commit();');
 

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+'use strict';
+
 // Fire me up!
 
 module.exports = {
@@ -22,19 +24,25 @@ module.exports = {
     inject: ['require(mongoose-deep-populate)', 'require(passport-local-mongoose)', 'settings', 'ignite_modules/mongo:*']
 };
 
-module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, pluginMongo) {
-    var mongoose = require('mongoose');
+module.exports.factory = function(deepPopulatePlugin, passportMongo, settings, pluginMongo) {
+    const mongoose = require('mongoose');
+
+    // Use native promises
+    mongoose.Promise = global.Promise;
 
     const deepPopulate = deepPopulatePlugin(mongoose);
 
     // Connect to mongoDB database.
     mongoose.connect(settings.mongoUrl, {server: {poolSize: 4}});
 
-    const Schema = mongoose.Schema, ObjectId = mongoose.Schema.Types.ObjectId,
-        result = { connection: mongoose.connection };
+    const Schema = mongoose.Schema;
+    const ObjectId = mongoose.Schema.Types.ObjectId;
+    const result = { connection: mongoose.connection };
+
+    result.ObjectId = ObjectId;
 
     // Define Account schema.
-    var AccountSchema = new Schema({
+    const AccountSchema = new Schema({
         username: String,
         email: String,
         company: String,
@@ -53,7 +61,7 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
 
     // Configure transformation to JSON.
     AccountSchema.set('toJSON', {
-        transform: function (doc, ret) {
+        transform: (doc, ret) => {
             return {
                 _id: ret._id,
                 email: ret.email,
@@ -81,8 +89,8 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
     }));
 
     // Define Domain model schema.
-    var DomainModelSchema = new Schema({
-        space: {type: ObjectId, ref: 'Space'},
+    const DomainModelSchema = new Schema({
+        space: {type: ObjectId, ref: 'Space', index: true},
         caches: [{type: ObjectId, ref: 'Cache'}],
         queryMetadata: {type: String, enum: ['Annotations', 'Configuration']},
         kind: {type: String, enum: ['query', 'store', 'both']},
@@ -116,8 +124,8 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
     result.DomainModel = mongoose.model('DomainModel', DomainModelSchema);
 
     // Define Cache schema.
-    var CacheSchema = new Schema({
-        space: {type: ObjectId, ref: 'Space'},
+    const CacheSchema = new Schema({
+        space: {type: ObjectId, ref: 'Space', index: true},
         name: String,
         clusters: [{type: ObjectId, ref: 'Cluster'}],
         domains: [{type: ObjectId, ref: 'DomainModel'}],
@@ -249,8 +257,8 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
     // Define Cache model.
     result.Cache = mongoose.model('Cache', CacheSchema);
 
-    var IgfsSchema = new Schema({
-        space: {type: ObjectId, ref: 'Space'},
+    const IgfsSchema = new Schema({
+        space: {type: ObjectId, ref: 'Space', index: true},
         name: String,
         clusters: [{type: ObjectId, ref: 'Cluster'}],
         affinnityGroupSize: Number,
@@ -295,8 +303,8 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
     result.Igfs = mongoose.model('Igfs', IgfsSchema);
 
     // Define Cluster schema.
-    var ClusterSchema = new Schema({
-        space: {type: ObjectId, ref: 'Space'},
+    const ClusterSchema = new Schema({
+        space: {type: ObjectId, ref: 'Space', index: true},
         name: String,
         localHost: String,
         discovery: {
@@ -367,8 +375,15 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
         },
         binaryConfiguration: {
             idMapper: String,
+            nameMapper: String,
             serializer: String,
-            typeConfigurations: [{typeName: String, idMapper: String, serializer: String, enum: Boolean}],
+            typeConfigurations: [{
+                typeName: String,
+                idMapper: String,
+                nameMapper: String,
+                serializer: String,
+                enum: Boolean
+            }],
             compactFooter: Boolean
         },
         caches: [{type: ObjectId, ref: 'Cache'}],
@@ -497,8 +512,8 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
     result.ClusterDefaultPopulate = '';
 
     // Define Notebook schema.
-    var NotebookSchema = new Schema({
-        space: {type: ObjectId, ref: 'Space'},
+    const NotebookSchema = new Schema({
+        space: {type: ObjectId, ref: 'Space', index: true},
         name: String,
         expandedParagraphs: [Number],
         paragraphs: [{
@@ -521,32 +536,37 @@ module.exports.factory = function (deepPopulatePlugin, passportMongo, settings, 
     // Define Notebook model.
     result.Notebook = mongoose.model('Notebook', NotebookSchema);
 
-    result.upsert = function (model, data, cb) {
-        if (data._id) {
-            var id = data._id;
-
-            delete data._id;
-
-            model.findOneAndUpdate({_id: id}, data, cb);
-        }
-        else
-            new model(data).save(cb);
+    result.handleError = function(res, err) {
+        // TODO IGNITE-843 Send error to admin
+        res.status(err.code || 500).send(err.message);
     };
 
-    result.processed = function(err, res) {
-        if (err) {
-            res.status(500).send(err);
+    /**
+     * Query for user spaces.
+     *
+     * @param userId User ID.
+     * @returns {Promise}
+     */
+    result.spaces = function(userId) {
+        return result.Space.find({owner: userId}).lean().exec();
+    };
 
-            return false;
-        }
-
-        return true;
+    /**
+     * Extract IDs from user spaces.
+     *
+     * @param userId User ID.
+     * @returns {Promise}
+     */
+    result.spaceIds = function(userId) {
+        return result.Space.find({owner: userId}).lean().exec()
+            .then((spaces) => spaces.map((space) => space._id));
     };
 
     // Registering the routes of all plugin modules
-    for (var name in pluginMongo)
+    for (const name in pluginMongo) {
         if (pluginMongo.hasOwnProperty(name))
             pluginMongo[name].register(mongoose, deepPopulate, result);
+    }
 
     return result;
 };

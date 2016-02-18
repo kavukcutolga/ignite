@@ -296,7 +296,13 @@ consoleModule.controller('cachesController', [
                 });
 
                 $scope.caches = data.caches;
-                $scope.clusters = data.clusters;
+                $scope.clusters = _.map(data.clusters, function (cluster) {
+                    return {
+                        value: cluster._id,
+                        label: cluster.name,
+                        caches: cluster.caches
+                    };
+                });
                 $scope.domains = _.sortBy(_.map(validFilter(data.domains, true, false), function (domain) {
                     return {
                         value: domain._id,
@@ -564,7 +570,7 @@ consoleModule.controller('cachesController', [
 
             if (item.writeBehindFlushSize === 0 && item.writeBehindFlushFrequency === 0)
                 return showPopoverMessage($scope.ui, 'store', 'writeBehindFlushSize',
-                    'Both \'Flush frequency\' and \'Flush size\' are not allowed as 0');
+                    'Both "Flush frequency" and "Flush size" are not allowed as 0');
 
             if (item.cacheMode !== 'LOCAL' && item.rebalanceMode !== 'NONE' && item.rebalanceBatchSize === 0)
                 return showPopoverMessage($scope.ui, 'rebalance', 'rebalanceBatchSize',

@@ -46,6 +46,12 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
         $scope.widthIsSufficient = $common.widthIsSufficient;
         $scope.saveBtnTipText = $common.saveBtnTipText;
 
+        $scope.contentVisible = function () {
+            var item = $scope.backupItem;
+
+            return item && (!item._id || _.find($scope.displayedRows, {_id: item._id}));
+        };
+
         $scope.trustManagersConfigured = function() {
             return $scope.backupItem.sslEnabled && $common.isDefined($scope.backupItem.sslContextFactory) &&
                 !$common.isEmptyArray($scope.backupItem.sslContextFactory.trustManagers);
@@ -186,7 +192,7 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
                 else
                     $scope.backupItem = undefined;
 
-                $scope.backupItem = angular.extend({}, blank, $scope.backupItem);
+                $scope.backupItem = angular.merge({}, blank, $scope.backupItem);
 
                 __original_value = JSON.stringify($cleanup($scope.backupItem));
 
@@ -212,7 +218,7 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
                 }
             };
 
-            newItem = angular.extend({},  blank, newItem);
+            newItem = angular.merge({}, blank, newItem);
 
             newItem.caches = id && _.find($scope.caches, {value: id}) ? [id] : [];
             newItem.igfss = id && _.find($scope.igfss, {value: id}) ? [id] : [];
@@ -363,10 +369,17 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
             var swapKind = item.swapSpaceSpi && item.swapSpaceSpi.kind;
 
             if (swapKind && item.swapSpaceSpi[swapKind]) {
-                var sparsity = item.swapSpaceSpi[swapKind].maximumSparsity;
+                var swap = item.swapSpaceSpi[swapKind];
+
+                var sparsity = swap.maximumSparsity;
 
                 if ($common.isDefined(sparsity) && (sparsity < 0 || sparsity >= 1))
                     return showPopoverMessage($scope.ui, 'swap', 'maximumSparsity', 'Maximum sparsity should be more or equal 0 and less than 1');
+
+                var readStripesNumber = swap.readStripesNumber;
+
+                if (readStripesNumber && !(readStripesNumber == -1 || (readStripesNumber & (readStripesNumber - 1)) == 0))
+                    return showPopoverMessage($scope.ui, 'swap', 'readStripesNumber', 'Read stripe size must be positive and power of two');
             }
 
             if (item.sslEnabled) {
@@ -411,7 +424,7 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
                     });
 
                     if (idx >= 0)
-                        angular.extend($scope.clusters[idx], item);
+                        angular.merge($scope.clusters[idx], item);
                     else {
                         item._id = _id;
                         $scope.clusters.push(item);
