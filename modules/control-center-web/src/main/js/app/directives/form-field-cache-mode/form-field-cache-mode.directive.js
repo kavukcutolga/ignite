@@ -17,7 +17,7 @@
 
 import template from './form-field-cache-mode.jade!';
 
-export default ['igniteFormFieldJavaClass', ['IgniteFormGUID', (guid) => {
+export default ['igniteFormFieldCacheMode', ['IgniteFormGUID', (guid) => {
     const link = (scope, el, attrs, [form, label]) => {
         const {id, name} = scope;
         const field = form[name];
