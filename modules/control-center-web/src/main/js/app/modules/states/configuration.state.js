@@ -18,38 +18,38 @@
 import angular from 'angular';
 
 // Clusters screen.
-import previewPanel from './clusters/preview-panel.directive';
-import clustersGeneral from './clusters/general.directive';
-import clustersGeneralDiscoveryCloud from './clusters/general/discovery/cloud.directive';
-import clustersGeneralDiscoveryGoogle from './clusters/general/discovery/google.directive';
-import clustersGeneralDiscoveryJdbc from './clusters/general/discovery/jdbc.directive';
-import clustersGeneralDiscoveryMulticast from './clusters/general/discovery/multicast.directive';
-import clustersGeneralDiscoveryS3 from './clusters/general/discovery/s3.directive';
-import clustersGeneralDiscoveryShared from './clusters/general/discovery/shared.directive';
-import clustersGeneralDiscoveryVm from './clusters/general/discovery/vm.directive';
-import clustersAtomic from './clusters/atomic.directive';
-import clustersBinary from './clusters/binary.directive';
-import clustersCommunication from './clusters/communication.directive';
-import clustersConnector from './clusters/connector.directive';
-import clustersDeployment from './clusters/deployment.directive';
-import clustersDiscovery from './clusters/discovery.directive';
-import clustersEvents from './clusters/events.directive';
-import clustersIgfs from './clusters/igfs.directive';
-import clustersMarshaller from './clusters/marshaller.directive';
-import clustersMetrics from './clusters/metrics.directive';
-import clustersSsl from './clusters/ssl.directive';
-import clustersSwap from './clusters/swap.directive';
-import clustersTime from './clusters/time.directive';
-import clustersThread from './clusters/thread.directive';
-import clustersTransactions from './clusters/transactions.directive';
+import previewPanel from './configuration/clusters/preview-panel.directive';
+import clustersGeneral from './configuration/clusters/general.directive';
+import clustersGeneralDiscoveryCloud from './configuration/clusters/general/discovery/cloud.directive';
+import clustersGeneralDiscoveryGoogle from './configuration/clusters/general/discovery/google.directive';
+import clustersGeneralDiscoveryJdbc from './configuration/clusters/general/discovery/jdbc.directive';
+import clustersGeneralDiscoveryMulticast from './configuration/clusters/general/discovery/multicast.directive';
+import clustersGeneralDiscoveryS3 from './configuration/clusters/general/discovery/s3.directive';
+import clustersGeneralDiscoveryShared from './configuration/clusters/general/discovery/shared.directive';
+import clustersGeneralDiscoveryVm from './configuration/clusters/general/discovery/vm.directive';
+import clustersAtomic from './configuration/clusters/atomic.directive';
+import clustersBinary from './configuration/clusters/binary.directive';
+import clustersCommunication from './configuration/clusters/communication.directive';
+import clustersConnector from './configuration/clusters/connector.directive';
+import clustersDeployment from './configuration/clusters/deployment.directive';
+import clustersDiscovery from './configuration/clusters/discovery.directive';
+import clustersEvents from './configuration/clusters/events.directive';
+import clustersIgfs from './configuration/clusters/igfs.directive';
+import clustersMarshaller from './configuration/clusters/marshaller.directive';
+import clustersMetrics from './configuration/clusters/metrics.directive';
+import clustersSsl from './configuration/clusters/ssl.directive';
+import clustersSwap from './configuration/clusters/swap.directive';
+import clustersTime from './configuration/clusters/time.directive';
+import clustersThread from './configuration/clusters/thread.directive';
+import clustersTransactions from './configuration/clusters/transactions.directive';
 
 // Caches screen.
-import cachesGeneral from './caches/general.directive';
+import cachesGeneral from './configuration/caches/general.directive';
 
 // Summary screen.
-import ConfigurationSummaryCtrl from './summary/summary.controller';
-import ConfigurationSummaryResource from './summary/summary.resource';
-import summaryTabs from './summary/summary-tabs.directive';
+import ConfigurationSummaryCtrl from './configuration/summary/summary.controller';
+import ConfigurationSummaryResource from './configuration/summary/summary.resource';
+import summaryTabs from './configuration/summary/summary-tabs.directive';
 
 angular
 .module('ignite-console.states.configuration', [
