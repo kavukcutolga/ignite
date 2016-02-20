@@ -49,6 +49,9 @@ import cachesMemory from './configuration/caches/memory.directive';
 import cachesQuery from './configuration/caches/query.directive';
 import cachesStore from './configuration/caches/store.directive';
 import cachesConcurrency from './configuration/caches/concurrency.directive';
+import cachesRebalance from './configuration/caches/rebalance.directive';
+import cachesServerNearCache from './configuration/caches/server-near-cache.directive';
+import cachesStatistics from './configuration/caches/statistics.directive';
 
 // Summary screen.
 import ConfigurationSummaryCtrl from './configuration/summary/summary.controller';
@@ -90,6 +93,9 @@ angular
 .directive(...cachesQuery)
 .directive(...cachesStore)
 .directive(...cachesConcurrency)
+.directive(...cachesRebalance)
+.directive(...cachesServerNearCache)
+.directive(...cachesStatistics)
 // Summary screen
 .directive(...summaryTabs)
 // Services.
