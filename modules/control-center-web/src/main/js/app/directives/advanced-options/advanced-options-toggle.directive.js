@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-import template from './concurrency.jade!';
+import template from './advanced-options-toggle.jade!';
 
-export default ['igniteConfigurationCachesConcurrency', [() => {
+export default ['igniteAdvancedOptionsToggle', [() => {
     return {
-        scope: true,
         restrict: 'E',
         template,
         replace: true

@@ -17,7 +17,7 @@
 
 import template from './store.jade!';
 
-export default ['igniteConfigurationCachesMemory', [() => {
+export default ['igniteConfigurationCachesStore', [() => {
     return {
         scope: true,
         restrict: 'E',

@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-import template from './concurrency.jade!';
+import template from './advanced-options-hide.jade!';
 
-export default ['igniteConfigurationCachesConcurrency', [() => {
+export default ['igniteAdvancedOptionsHide', [() => {
     return {
-        scope: true,
         restrict: 'E',
         template,
         replace: true

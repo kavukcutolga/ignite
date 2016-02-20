@@ -37,8 +37,14 @@ include ../includes/infos
                     ignite-configuration-caches-memory
                     ignite-configuration-caches-query
                     ignite-configuration-caches-store
-                    ignite-configuration-caches-concurrency
-                    ignite-configuration-caches-rebalance
-                    ignite-configuration-caches-server-near-cache
-                    ignite-configuration-caches-statistics
+
+                    ignite-advanced-options-toggle
+
+                    div(ng-show='ui.expanded')
+                        ignite-configuration-caches-concurrency
+                        ignite-configuration-caches-rebalance
+                        ignite-configuration-caches-server-near-cache
+                        ignite-configuration-caches-statistics
+
+                        ignite-advanced-options-hide
 

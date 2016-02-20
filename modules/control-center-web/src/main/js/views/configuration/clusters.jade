@@ -53,11 +53,9 @@ include ../includes/infos
                 form.form-horizontal(name='ui.inputForm' ng-show='contentVisible()' novalidate)
                     .panel-group(ng-click='triggerDigest = true')
                         ignite-configuration-clusters-general
-                        .advanced-options
-                            i.fa(
-                                ng-click='toggleExpanded()'
-                                ng-class='ui.expanded ? "fa-chevron-circle-down" : "fa-chevron-circle-right"')
-                            a(ng-click='toggleExpanded()') {{ui.expanded ? 'Hide advanced settings...' : 'Show advanced settings...'}}
+
+                        ignite-advanced-options-toggle
+
                         div(ng-show='ui.expanded')
                             ignite-configuration-clusters-atomic
                             ignite-configuration-clusters-binary
@@ -75,6 +73,4 @@ include ../includes/infos
                             ignite-configuration-clusters-thread
                             ignite-configuration-clusters-transactions
 
-                            .advanced-options
-                                i.fa.fa-chevron-circle-down(ng-click='ui.expanded = !ui.expanded')
-                                a(ng-click='ui.expanded = !ui.expanded') Hide advanced settings...
+                            ignite-advanced-options-hide

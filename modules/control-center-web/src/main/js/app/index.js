@@ -81,6 +81,8 @@ import './modules/Version/Version.provider';
 // endignite
 
 // Directives.
+import igniteAdvancedOptionsHide from './directives/advanced-options/advanced-options-hide.directive';
+import igniteAdvancedOptionsToggle from './directives/advanced-options/advanced-options-toggle.directive';
 import igniteLoading from './directives/loading/loading.directive';
 import igniteInformation from './directives/information/information.directive';
 import igniteUiAce from './directives/ui-ace/ui-ace.directive';
@@ -130,6 +132,8 @@ angular
     'ignite-console.version'
 ])
 // Directives.
+.directive(...igniteAdvancedOptionsHide)
+.directive(...igniteAdvancedOptionsToggle)
 .directive(...igniteLoading)
 .directive(...igniteInformation)
 .directive(...igniteUiAce)

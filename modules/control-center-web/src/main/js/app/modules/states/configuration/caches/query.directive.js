@@ -17,7 +17,7 @@
 
 import template from './query.jade!';
 
-export default ['igniteConfigurationCachesMemory', [() => {
+export default ['igniteConfigurationCachesQuery', [() => {
     return {
         scope: true,
         restrict: 'E',

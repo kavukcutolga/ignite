@@ -45,6 +45,10 @@ import clustersTransactions from './configuration/clusters/transactions.directiv
 
 // Caches screen.
 import cachesGeneral from './configuration/caches/general.directive';
+import cachesMemory from './configuration/caches/memory.directive';
+import cachesQuery from './configuration/caches/query.directive';
+import cachesStore from './configuration/caches/store.directive';
+import cachesConcurrency from './configuration/caches/concurrency.directive';
 
 // Summary screen.
 import ConfigurationSummaryCtrl from './configuration/summary/summary.controller';
@@ -82,6 +86,10 @@ angular
 .directive(...clustersGeneralDiscoveryVm)
 // Caches screen
 .directive(...cachesGeneral)
+.directive(...cachesMemory)
+.directive(...cachesQuery)
+.directive(...cachesStore)
+.directive(...cachesConcurrency)
 // Summary screen
 .directive(...summaryTabs)
 // Services.
