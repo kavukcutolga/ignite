@@ -16,8 +16,9 @@
  */
 
 // Controller for Clusters screen.
-consoleModule.controller('clustersController', function ($http, $timeout, $scope, $state, $controller,
-    $common, $focus, $confirm, $clone, $loading, $unsavedChangesGuard, $cleanup, igniteEventGroups) {
+consoleModule.controller('clustersController', [
+    '$http', '$timeout', '$scope', '$state', '$controller', '$common', '$confirm', '$clone', '$loading', '$unsavedChangesGuard', '$cleanup', 'igniteEventGroups',
+    function ($http, $timeout, $scope, $state, $controller, $common, $confirm, $clone, $loading, $unsavedChangesGuard, $cleanup, igniteEventGroups) {
         $unsavedChangesGuard.install($scope);
 
         var __original_value;
@@ -126,7 +127,6 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
                     return {value: igfs._id, label: igfs.name, igfs: igfs};
                 });
 
-                // Load page descriptor.
                 if ($state.params.id)
                     $scope.createItem($state.params.id);
                 else {
@@ -183,7 +183,9 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
                     else
                         sessionStorage.removeItem('lastSelectedCluster');
                 }
-                catch (error) { }
+                catch (ignored) {
+                    // No-op.
+                }
 
                 if (backup)
                     $scope.backupItem = backup;
@@ -540,5 +542,5 @@ consoleModule.controller('clustersController', function ($http, $timeout, $scope
                     $scope.ui.inputForm.$setPristine();
                 });
         };
-    }
+    }]
 );

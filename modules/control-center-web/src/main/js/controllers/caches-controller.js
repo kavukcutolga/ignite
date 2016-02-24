@@ -17,9 +17,17 @@
 
 // Controller for Caches screen.
 consoleModule.controller('cachesController', [
-    '$scope', '$state', '$controller', '$filter', '$http', '$timeout', '$common', '$focus', '$confirm', '$clone', '$table', '$preview', '$loading', '$unsavedChangesGuard',
-    function ($scope, $state, $controller, $filter, $http, $timeout, $common, $focus, $confirm, $clone, $table, $preview, $loading, $unsavedChangesGuard) {
+    '$scope', '$state', '$controller', '$filter', '$http', '$timeout', '$common', '$confirm', '$clone', '$loading', '$cleanup', '$unsavedChangesGuard',
+    function ($scope, $state, $controller, $filter, $http, $timeout, $common, $confirm, $clone, $loading, $cleanup, $unsavedChangesGuard) {
         $unsavedChangesGuard.install($scope);
+
+        var __original_value;
+
+        var blank = {
+            evictionPolicy: {},
+            cacheStoreFactory: {},
+            nearConfiguration: {}
+        };
 
         // Initialize the super class and extend it.
         angular.extend(this, $controller('save-remove', {$scope: $scope}));
@@ -28,127 +36,9 @@ consoleModule.controller('cachesController', [
         $scope.ui.activePanels = [0];
         $scope.ui.topPanels = [0, 1, 2, 3];
 
-        $scope.selectedItemWatchGuard = false;
-
-        $scope.joinTip = $common.joinTip;
-        $scope.getModel = $common.getModel;
-        $scope.javaBuiltInClasses = $common.javaBuiltInClasses;
-        $scope.compactJavaName = $common.compactJavaName;
-        $scope.widthIsSufficient = $common.widthIsSufficient;
-        $scope.saveBtnTipText = $common.saveBtnTipText;
-        $scope.panelExpanded = $common.panelExpanded;
-
-        $scope.tableVisibleRow = $table.tableVisibleRow;
-
-        $scope.tableSave = function (field, index, stopEdit) {
-            switch (field.type) {
-                case 'table-simple':
-                    if ($table.tableSimpleSaveVisible(field, index))
-                        return $table.tableSimpleSave($scope.tableSimpleValid, $scope.backupItem, field, index, stopEdit);
-
-                    break;
-            }
-
-            return true;
-        };
-
-        $scope.tableReset = function (save) {
-            var field = $table.tableField();
-
-            if (!save || !$common.isDefined(field) || $scope.tableSave(field, $table.tableEditedRowIndex(), true)) {
-                $table.tableReset();
-
-                return true;
-            }
-
-            return false;
-        };
-
-        $scope.tableNewItem = function (field) {
-            if ($scope.tableReset(true))
-                $table.tableNewItem(field);
-        };
-
-        $scope.tableNewItemActive = $table.tableNewItemActive;
-
-        $scope.tableStartEdit = function (item, field, index) {
-            if ($scope.tableReset(true))
-                $table.tableStartEdit(item, field, index);
-        };
-
-        $scope.tableEditing = $table.tableEditing;
-
-        $scope.tableRemove = function (item, field, index) {
-            if ($scope.tableReset(true))
-                $table.tableRemove(item, field, index);
-        };
-
-        $scope.tableSimpleSave = $table.tableSimpleSave;
-        $scope.tableSimpleSaveVisible = $table.tableSimpleSaveVisible;
-
-        $scope.tableSimpleUp = function (item, field, index) {
-            if ($scope.tableReset(true))
-                $table.tableSimpleUp(item, field, index);
-        };
-
-        $scope.tableSimpleDown = function (item, field, index) {
-            if ($scope.tableReset(true))
-                $table.tableSimpleDown(item, field, index);
-        };
-
-        $scope.tableSimpleDownVisible = $table.tableSimpleDownVisible;
-
-        $scope.tablePairSave = $table.tablePairSave;
-        $scope.tablePairSaveVisible = $table.tablePairSaveVisible;
-
-        $scope.tableEditedRowIndex = $table.tableEditedRowIndex;
-
-        var previews = [];
-
-        $scope.previewInit = function (preview) {
-            previews.push(preview);
-
-            $preview.previewInit(preview);
-        };
-
-        $scope.previewChanged = $preview.previewChanged;
-
         $scope.hidePopover = $common.hidePopover;
 
         var showPopoverMessage = $common.showPopoverMessage;
-
-        $scope.atomicities = $common.mkOptions(['ATOMIC', 'TRANSACTIONAL']);
-
-        $scope.cacheModes = $common.mkOptions(['PARTITIONED', 'REPLICATED', 'LOCAL']);
-
-        $scope.atomicWriteOrderModes = $common.mkOptions(['CLOCK', 'PRIMARY']);
-
-        $scope.writeSynchronizationMode = $common.mkOptions(['FULL_SYNC', 'FULL_ASYNC', 'PRIMARY_SYNC']);
-
-        $scope.memoryModes = $common.mkOptions(['ONHEAP_TIERED', 'OFFHEAP_TIERED', 'OFFHEAP_VALUES']);
-
-        $scope.evictionPolicies = [
-            {value: 'LRU', label: 'LRU'},
-            {value: 'FIFO', label: 'FIFO'},
-            {value: 'SORTED', label: 'Sorted'},
-            {value: undefined, label: 'Not set'}
-        ];
-
-        $scope.rebalanceModes = $common.mkOptions(['SYNC', 'ASYNC', 'NONE']);
-
-        $scope.cacheStoreFactories = [
-            {value: 'CacheJdbcPojoStoreFactory', label: 'JDBC POJO store factory'},
-            {value: 'CacheJdbcBlobStoreFactory', label: 'JDBC BLOB store factory'},
-            {value: 'CacheHibernateBlobStoreFactory', label: 'Hibernate BLOB store factory'},
-            {value: undefined, label: 'Not set'}
-        ];
-
-        $scope.jdbcBlobStoreConnections = [
-            {value: 'URL', label: 'URL'},
-            {value: 'DataSource', label: 'Data source'}
-        ];
-
-        $scope.cacheStoreJdbcDialects = $common.cacheStoreJdbcDialects;
 
         $scope.toggleExpanded = function () {
             $scope.ui.expanded = !$scope.ui.expanded;
@@ -156,21 +46,14 @@ consoleModule.controller('cachesController', [
             $common.hidePopover();
         };
 
-        $scope.general = [];
-        $scope.advanced = [];
+        $scope.contentVisible = function () {
+            var item = $scope.backupItem;
+
+            return item && (!item._id || _.find($scope.displayedRows, {_id: item._id}));
+        };
+
         $scope.caches = [];
         $scope.domains = [];
-
-        $scope.preview = {
-            general: {xml: '', java: '', allDefaults: true},
-            memory: {xml: '', java: '', allDefaults: true},
-            query: {xml: '', java: '', allDefaults: true},
-            store: {xml: '', java: '', allDefaults: true},
-            concurrency: {xml: '', java: '', allDefaults: true},
-            rebalance: {xml: '', java: '', allDefaults: true},
-            serverNearCache: {xml: '', java: '', allDefaults: true},
-            statistics: {xml: '', java: '', allDefaults: true}
-        };
 
         function _cacheLbl(cache) {
             return cache.name + ', ' + cache.cacheMode + ', ' + cache.atomicityMode;
@@ -312,84 +195,27 @@ consoleModule.controller('cachesController', [
                     };
                 }), 'label');
 
-                // Load page descriptor.
-                $http.get('/models/caches.json')
-                    .success(function (data) {
-                        $scope.general = data.general;
-                        $scope.advanced = data.advanced;
+                if ($state.params.id)
+                    $scope.createItem($state.params.id);
+                else {
+                    var lastSelectedCache = angular.fromJson(sessionStorage.lastSelectedCache);
 
-                        $scope.ui.addGroups(data.general, data.advanced);
+                    if (lastSelectedCache) {
+                        var idx = _.findIndex($scope.caches, function (cache) {
+                            return cache._id === lastSelectedCache;
+                        });
 
-                        if ($state.params.id)
-                            $scope.createItem($state.params.id);
+                        if (idx >= 0)
+                            $scope.selectItem($scope.caches[idx]);
                         else {
-                            var lastSelectedCache = angular.fromJson(sessionStorage.lastSelectedCache);
+                            sessionStorage.removeItem('lastSelectedCache');
 
-                            if (lastSelectedCache) {
-                                var idx = _.findIndex($scope.caches, function (cache) {
-                                    return cache._id === lastSelectedCache;
-                                });
-
-                                if (idx >= 0)
-                                    $scope.selectItem($scope.caches[idx]);
-                                else {
-                                    sessionStorage.removeItem('lastSelectedCache');
-
-                                    selectFirstItem();
-                                }
-                            }
-                            else
-                                selectFirstItem();
+                            selectFirstItem();
                         }
-
-                        $scope.$watch('backupItem', function (val) {
-                            if (val) {
-                                var srcItem = $scope.selectedItem ? $scope.selectedItem : prepareNewItem();
-
-                                $scope.ui.checkDirty(val, srcItem);
-
-                                var domains = cacheDomains(val);
-                                var varName = $commonUtils.toJavaName('cache', val.name);
-
-                                $scope.preview.general.xml = $generatorXml.cacheDomains(domains, $generatorXml.cacheGeneral(val)).asString();
-                                $scope.preview.general.java = $generatorJava.cacheDomains(domains, varName, $generatorJava.cacheGeneral(val, varName)).asString();
-                                $scope.preview.general.allDefaults = $common.isEmptyString($scope.preview.general.xml);
-
-                                $scope.preview.memory.xml = $generatorXml.cacheMemory(val).asString();
-                                $scope.preview.memory.java = $generatorJava.cacheMemory(val, varName).asString();
-                                $scope.preview.memory.allDefaults = $common.isEmptyString($scope.preview.memory.xml);
-
-                                $scope.preview.query.xml = $generatorXml.cacheQuery(val).asString();
-                                $scope.preview.query.java = $generatorJava.cacheQuery(val, varName).asString();
-                                $scope.preview.query.allDefaults = $common.isEmptyString($scope.preview.query.xml);
-
-                                var storeFactory = $generatorXml.cacheStore(val, domains);
-
-                                $scope.preview.store.xml = $generatorXml.generateDataSources(storeFactory.datasources).asString() + storeFactory.asString();
-                                $scope.preview.store.java = $generatorJava.cacheStore(val, domains, varName).asString();
-                                $scope.preview.store.allDefaults = $common.isEmptyString($scope.preview.store.xml);
-
-                                $scope.preview.concurrency.xml = $generatorXml.cacheConcurrency(val).asString();
-                                $scope.preview.concurrency.java = $generatorJava.cacheConcurrency(val, varName).asString();
-                                $scope.preview.concurrency.allDefaults = $common.isEmptyString($scope.preview.concurrency.xml);
-
-                                $scope.preview.rebalance.xml = $generatorXml.cacheRebalance(val).asString();
-                                $scope.preview.rebalance.java = $generatorJava.cacheRebalance(val, varName).asString();
-                                $scope.preview.rebalance.allDefaults = $common.isEmptyString($scope.preview.rebalance.xml);
-
-                                $scope.preview.serverNearCache.xml = $generatorXml.cacheServerNearCache(val).asString();
-                                $scope.preview.serverNearCache.java = $generatorJava.cacheServerNearCache(val, varName).asString();
-                                $scope.preview.serverNearCache.allDefaults = $common.isEmptyString($scope.preview.serverNearCache.xml);
-
-                                $scope.preview.statistics.xml = $generatorXml.cacheStatistics(val).asString();
-                                $scope.preview.statistics.java = $generatorJava.cacheStatistics(val, varName).asString();
-                                $scope.preview.statistics.allDefaults = $common.isEmptyString($scope.preview.statistics.xml);
-                            }
-                        }, true);
-                    })
-                    .error(function (errMsg) {
-                        $common.showError(errMsg);
-                    });
+                    }
+                    else
+                        selectFirstItem();
+                }
             })
             .error(function (errMsg) {
                 $common.showError(errMsg);
@@ -401,22 +227,17 @@ consoleModule.controller('cachesController', [
 
         $scope.selectItem = function (item, backup) {
             function selectItem() {
-                $table.tableReset();
-
-                $scope.selectedItemWatchGuard = true;
-                $scope.selectedItem = angular.copy(item);
+                $scope.selectedItem = item;
 
                 try {
-                    if (item)
+                    if (item && item._id)
                         sessionStorage.lastSelectedCache = angular.toJson(item._id);
                     else
                         sessionStorage.removeItem('lastSelectedCache');
                 }
-                catch (error) { }
-
-                _.forEach(previews, function (preview) {
-                    preview.attractAttention = false;
-                });
+                catch (ignored) {
+                    // No-op.
+                }
 
                 if (backup)
                     $scope.backupItem = backup;
@@ -425,11 +246,15 @@ consoleModule.controller('cachesController', [
                 else
                     $scope.backupItem = undefined;
 
+                $scope.backupItem = angular.merge({}, blank, $scope.backupItem);
+
+                __original_value = JSON.stringify($cleanup($scope.backupItem));
+
                 if ($common.getQueryVariable('new'))
                     $state.go('base.configuration.caches');
             }
 
-            $common.confirmUnsavedChanges($scope.ui.isDirty(), selectItem);
+            $common.confirmUnsavedChanges($scope.backupItem && $scope.ui.inputForm.$dirty, selectItem);
         };
 
         function prepareNewItem(id) {
@@ -448,13 +273,11 @@ consoleModule.controller('cachesController', [
 
         // Add new cache.
         $scope.createItem = function (id) {
-            if ($scope.tableReset(true)) {
-                $timeout(function () {
-                    $common.ensureActivePanel($scope.ui, 'general', 'cacheName');
-                });
+            $timeout(function () {
+                $common.ensureActivePanel($scope.ui, 'general', 'cacheName');
+            });
 
-                $scope.selectItem(undefined, prepareNewItem(id));
-            }
+            $scope.selectItem(undefined, prepareNewItem(id));
         };
 
         function checkDataSources() {
@@ -609,14 +432,12 @@ consoleModule.controller('cachesController', [
 
         // Save cache.
         $scope.saveItem = function () {
-            if ($scope.tableReset(true)) {
-                var item = $scope.backupItem;
+            var item = $scope.backupItem;
 
-                angular.extend(item, $common.autoCacheStoreConfiguration(item, cacheDomains(item)));
+            angular.extend(item, $common.autoCacheStoreConfiguration(item, cacheDomains(item)));
 
-                if (validate(item))
-                    save(item);
-            }
+            if (validate(item))
+                save(item);
         };
 
         function _cacheNames() {
@@ -627,7 +448,7 @@ consoleModule.controller('cachesController', [
 
         // Save cache with new name.
         $scope.cloneItem = function () {
-            if ($scope.tableReset(true) && validate($scope.backupItem)) {
+            if (validate($scope.backupItem)) {
                 $clone.confirm($scope.backupItem.name, _cacheNames()).then(function (newName) {
                     var item = angular.copy($scope.backupItem);
 
@@ -643,8 +464,6 @@ consoleModule.controller('cachesController', [
 
         // Remove cache from db.
         $scope.removeItem = function () {
-            $table.tableReset();
-
             var selectedItem = $scope.selectedItem;
 
             $confirm.confirm('Are you sure you want to remove cache: "' + selectedItem.name + '"?')
@@ -678,8 +497,6 @@ consoleModule.controller('cachesController', [
 
         // Remove all caches from db.
         $scope.removeAllItems = function () {
-            $table.tableReset();
-
             $confirm.confirm('Are you sure you want to remove all caches?')
                 .then(function () {
                     $http.post('/api/v1/configuration/caches/remove/all')
@@ -707,8 +524,6 @@ consoleModule.controller('cachesController', [
         };
 
         $scope.resetAll = function () {
-            $table.tableReset();
-
             $confirm.confirm('Are you sure you want to undo all changes for current cache?')
                 .then(function () {
                     $scope.backupItem = $scope.selectedItem ? angular.copy($scope.selectedItem) : prepareNewItem();

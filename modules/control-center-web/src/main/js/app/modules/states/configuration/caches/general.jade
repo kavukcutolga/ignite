@@ -72,20 +72,51 @@ form.panel.panel-default(name='general' novalidate)
                         ignite-form-field-label
                             | Cache mode:
                         ignite-form-field-tooltip
-                            | Cache modes:#[br]
+                            | Cache modes:
                             ul: li Partitioned - in this mode the overall key set will be divided into partitions and all partitions will be split equally between participating nodes
                                 li Replicated - in this mode all the keys are distributed to all participating nodes
                                 li Local - in this mode caches residing on different grid nodes will not know about each other
                         ignite-form-field-dropdown(
-                        data-id='cacheMode'
-                        data-name='cacheMode'
-                        data-options='[\
-                            {value: "LOCAL", label: "LOCAL"},\
-                            {value: "REPLICATED", label: "REPLICATED"},\
-                            {value: "PARTITIONED", label: "PARTITIONED"}\
-                        ]'
-                        data-ng-model='#{model}.cacheMode'
-                        data-placeholder='PARTITIONED'
+                            data-id='cacheMode'
+                            data-name='cacheMode'
+                            data-options='[\
+                                {value: "LOCAL", label: "LOCAL"},\
+                                {value: "REPLICATED", label: "REPLICATED"},\
+                                {value: "PARTITIONED", label: "PARTITIONED"}\
+                            ]'
+                            data-ng-model='#{model}.cacheMode'
+                            data-placeholder='PARTITIONED'
+                        )
+                .settings-row
+                    ignite-form-field
+                        ignite-form-field-label
+                            | Atomicity:
+                        ignite-form-field-tooltip
+                            | Atomicity:
+                            ul: li Atomic - in this mode distributed transactions and distributed locking are not supported
+                                li Transactional - in this mode specified fully ACID-compliant transactional cache behavior
+                        ignite-form-field-dropdown(
+                            data-id='atomicityMode'
+                            data-name='atomicityMode'
+                            data-options='[\
+                                {value: "ATOMIC", label: "ATOMIC"},\
+                                {value: "TRANSACTIONAL", label: "TRANSACTIONAL"}\
+                            ]'
+                            data-ng-model='#{model}.atomicityMode'
+                            data-placeholder='ATOMIC'
+                        )
+                .settings-row(data-ng-show='#{model}.cacheMode === "PARTITIONED"')
+                    ignite-form-field
+                        ignite-form-field-label
+                            | Backups:
+                        ignite-form-field-tooltip
+                            | Number of nodes used to back up single partition for partitioned cache
+                        ignite-form-field-input-number(
+                            data-id='backups'
+                            data-name='backups'
+                            data-ng-model='#{model}.backups'
+                            data-placeholder='0'
+                            data-min='0'
                         )
             ignite-ui-ace.col-sm-6
                 .preview-panel(ng-init='mode = false')
