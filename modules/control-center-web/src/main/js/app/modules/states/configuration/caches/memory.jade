@@ -20,6 +20,8 @@ form.panel.panel-default(name='memory' novalidate)
     .panel-heading(bs-collapse-toggle)
         ignite-form-panel-chevron
         label Memory
+        ignite-form-field-tooltip.tipLabel
+            | Cache memory settings
         ignite-form-revert
     .panel-collapse(role='tabpanel' bs-collapse-target id='memory')
         .panel-body
@@ -27,65 +29,58 @@ form.panel.panel-default(name='memory' novalidate)
                 .settings-row
                     ignite-form-field
                         ignite-form-field-label
-                            | Name:
+                            | Mode:
                         ignite-form-field-tooltip
-                            | Cache name
-                        ignite-form-field-input-text(
-                            data-id='cacheName'
-                            data-name='cacheName'
-                            data-ng-model='#{model}.name'
-                            data-ng-required='true'
-                            data-placeholder='Input name'
+                            | Memory modes:
+                            ul: li ONHEAP_TIERED - entries are cached on heap memory first
+                                ul: li If offheap memory is enabled and eviction policy evicts an entry from heap memory, entry will be moved to offheap memory#[br]
+                                       | If offheap memory is disabled, then entry is simply discarded
+                                    li If swap space is enabled and offheap memory fills up, then entry will be evicted into swap space#[br]
+                                        | If swap space is disabled, then entry will be discarded. If swap is enabled and offheap memory is disabled, then entry will be evicted directly from heap memory into swap
+                                li OFFHEAP_TIERED - works the same as ONHEAP_TIERED, except that entries never end up in heap memory and get stored in offheap memory right away#[br]
+                                    | Entries get cached in offheap memory first and then get evicted to swap, if one is configured
+                                li OFFHEAP_VALUES - entry keys will be stored on heap memory, and values will be stored in offheap memory#[br]
+                                    | Note that in this mode entries can be evicted only to swap
+                        ignite-form-field-dropdown(
+                            data-id='memoryMode'
+                            data-name='memoryMode'
+                            data-options='[\
+                                {value: "ONHEAP_TIERED", label: "ONHEAP_TIERED"},\
+                                {value: "OFFHEAP_TIERED", label: "OFFHEAP_TIERED"},\
+                                {value: "OFFHEAP_VALUES", label: "OFFHEAP_VALUES"}\
+                            ]'
+                            data-ng-model='#{model}.memoryMode'
+                            data-placeholder='ONHEAP_TIERED'
+                        )
+                .settings-row(data-ng-show='#{model}.memoryMode !== "OFFHEAP_VALUES"')
+                    ignite-form-field
+                        ignite-form-field-label
+                            | Off-heap max memory:
+                        ignite-form-field-tooltip
+                            | Sets maximum amount of memory available to off-heap storage#[br]
+                            | Possible values are:
+                            ul: li -1 - means that off-heap storage is disabled
+                                li 0 - Ignite will not limit off-heap storage (it's up to user to properly add and remove entries from cache to ensure that off-heap storage does not grow infinitely
+                                li Any positive value specifies the limit of off-heap storage in bytes
+                        ignite-form-field-input-number(
+                            data-id='offHeapMaxMemory'
+                            data-name='offHeapMaxMemory'
+                            data-ng-model='#{model}.offHeapMaxMemory'
+                            data-placeholder='-1'
+                            data-min='-1'
                         )
                 .settings-row
                     ignite-form-field
                         ignite-form-field-label
-                            | Clusters: #[a(ui-sref='base.configuration.clusters({id: #{model}._id})') (add)]
+                            | Start size:
                         ignite-form-field-tooltip
-                            | Associate clusters with the current cache
-                        ignite-form-field-dropdown(
-                            data-id='clusters'
-                            data-name='clusters'
-                            data-options='clusters'
-                            data-multiple='true'
-                            data-ng-model='#{model}.clusters'
-                            data-ng-disabled='!clusters.length'
-                            data-placeholder='{{ clusters.length ? "Choose clusters": "No clusters configured" }}'
-                        )
-                .settings-row
-                    ignite-form-field
-                        ignite-form-field-label
-                            | Domain models: #[a(ui-sref='base.configuration.domains({id: #{model}._id})') (add)]
-                        ignite-form-field-tooltip
-                            | Associate clusters with the current cache
-                        ignite-form-field-dropdown(
-                            data-id='domains'
-                            data-name='domains'
-                            data-options='domains'
-                            data-multiple='true'
-                            data-ng-model='#{model}.domains'
-                            data-ng-disabled='!domains.length'
-                            data-placeholder='{{ domains.length ? "Choose domain models": "No domain models configured" }}'
-                        )
-                .settings-row
-                    ignite-form-field
-                        ignite-form-field-label
-                            | Cache mode:
-                        ignite-form-field-tooltip
-                            | Cache modes:
-                            ul: li Partitioned - in this mode the overall key set will be divided into partitions and all partitions will be split equally between participating nodes
-                                li Replicated - in this mode all the keys are distributed to all participating nodes
-                                li Local - in this mode caches residing on different grid nodes will not know about each other
-                        ignite-form-field-dropdown(
-                        data-id='cacheMode'
-                        data-name='cacheMode'
-                        data-options='[\
-                            {value: "LOCAL", label: "LOCAL"},\
-                            {value: "REPLICATED", label: "REPLICATED"},\
-                            {value: "PARTITIONED", label: "PARTITIONED"}\
-                        ]'
-                        data-ng-model='#{model}.cacheMode'
-                        data-placeholder='PARTITIONED'
+                            | Initial cache size which will be used to pre-create internal hash table after start
+                        ignite-form-field-input-number(
+                            data-id='startSize'
+                            data-name='startSize'
+                            data-ng-model='#{model}.startSize'
+                            data-placeholder='1500000'
+                            data-min='0'
                         )
             ignite-ui-ace.col-sm-6
                 .preview-panel(ng-init='mode = false')

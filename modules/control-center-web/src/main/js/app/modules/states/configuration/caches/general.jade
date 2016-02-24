@@ -118,6 +118,39 @@ form.panel.panel-default(name='general' novalidate)
                             data-placeholder='0'
                             data-min='0'
                         )
+                .settings-row(data-ng-show='#{model}.backups && #{model}.cacheMode !== "LOCAL"')
+                    ignite-form-field.checkbox
+                        ignite-form-field-input-checkbox(
+                            data-id='readFromBackup'
+                            data-name='readFromBackup'
+                            data-ng-model='#{model}.readFromBackup'
+                        )
+                        | Read from backup
+                        ignite-form-field-tooltip
+                            | Flag indicating whether data can be read from backup#[br]
+                            | If not set then always get data from primary node (never from backup)
+                .settings-row
+                    ignite-form-field.checkbox
+                        ignite-form-field-input-checkbox(
+                            data-id='copyOnRead'
+                            data-name='copyOnRead'
+                            data-ng-model='#{model}.copyOnRead'
+                        )
+                        | Copy on read
+                        ignite-form-field-tooltip
+                            | Flag indicating whether copy of the value stored in cache should be created for cache operation implying return value#[br]
+                            | Also if this flag is set copies are created for values passed to CacheInterceptor and to CacheEntryProcessor
+                .settings-row
+                    ignite-form-field.checkbox
+                        ignite-form-field-input-checkbox(
+                            data-id='invalidate'
+                            data-name='invalidate'
+                            data-ng-model='#{model}.invalidate'
+                        )
+                        | Invalidate near cache
+                        ignite-form-field-tooltip
+                            | Invalidation flag for near cache entries in transaction#[br]
+                            | If set then values will be invalidated (nullified) upon commit in near cache
             ignite-ui-ace.col-sm-6
                 .preview-panel(ng-init='mode = false')
                     .preview-legend
