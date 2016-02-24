@@ -407,23 +407,25 @@ consoleModule.controller('sqlController', function ($http, $timeout, $interval, 
     $scope.removeParagraph = function(paragraph) {
         $confirm.confirm('Are you sure you want to remove: "' + paragraph.name + '"?')
             .then(function () {
-                    var paragraph_idx = _.findIndex($scope.notebook.paragraphs, function (item) {
-                        return paragraph == item;
-                    });
+                $scope.stopRefresh(paragraph);
 
-                    var panel_idx = _.findIndex($scope.expandedParagraphs, function (item) {
-                        return paragraph_idx == item;
-                    });
+                var paragraph_idx = _.findIndex($scope.notebook.paragraphs, function (item) {
+                    return paragraph == item;
+                });
 
-                    if (panel_idx >= 0)
-                        $scope.expandedParagraphs.splice(panel_idx, 1);
+                var panel_idx = _.findIndex($scope.expandedParagraphs, function (item) {
+                    return paragraph_idx == item;
+                });
 
-                    $scope.notebook.paragraphs.splice(paragraph_idx, 1);
+                if (panel_idx >= 0)
+                    $scope.expandedParagraphs.splice(panel_idx, 1);
 
-                    $scope.rebuildScrollParagraphs();
+                $scope.notebook.paragraphs.splice(paragraph_idx, 1);
 
-                    QueryNotebooks.save($scope.demo, $scope.notebook)
-                        .catch(_handleException);
+                $scope.rebuildScrollParagraphs();
+
+                QueryNotebooks.save($scope.demo, $scope.notebook)
+                    .catch(_handleException);
             });
     };
 
@@ -483,6 +485,18 @@ consoleModule.controller('sqlController', function ($http, $timeout, $interval, 
 
     var _rebuildColumns = function (paragraph) {
         var columnDefs = [];
+
+        _.forEach(_.groupBy(paragraph.meta, 'fieldName'), function (colsByName, fieldName) {
+            var colsByTypes = _.groupBy(colsByName, 'typeName');
+
+            var needType = _.keys(colsByTypes).length > 1;
+
+            _.forEach(colsByTypes, function(colsByType, typeName) {
+                _.forEach(colsByType, function (col, ix) {
+                    col.fieldName = (needType && !$common.isEmptyString(typeName) ? typeName + '.' : '') + fieldName + (ix > 0 ? ix : '');
+                })
+            });
+        });
 
         _.forEach(paragraph.meta, function (col, idx) {
             if (paragraph.columnFilter(col)) {
