@@ -18,7 +18,7 @@
 package org.apache.ignite.events;
 
 import java.util.UUID;
-import org.apache.ignite.cache.CacheEntryEventSerializableFilter;
+import javax.cache.event.CacheEntryEventFilter;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.S;
@@ -83,7 +83,7 @@ public class CacheQueryExecutedEvent<K, V> extends EventAdapter {
 
     /** Continuous query filter. */
     @GridToStringInclude
-    private final CacheEntryEventSerializableFilter<K, V> contQryFilter;
+    private final CacheEntryEventFilter<K, V> contQryFilter;
 
     /** Query arguments. */
     @GridToStringInclude
@@ -116,7 +116,7 @@ public class CacheQueryExecutedEvent<K, V> extends EventAdapter {
         @Nullable String clsName,
         @Nullable String clause,
         @Nullable IgniteBiPredicate<K, V> scanQryFilter,
-        @Nullable CacheEntryEventSerializableFilter<K, V> contQryFilter,
+        @Nullable CacheEntryEventFilter<K, V> contQryFilter,
         @Nullable Object[] args,
         @Nullable UUID subjId,
         @Nullable String taskName) {
@@ -194,7 +194,7 @@ public class CacheQueryExecutedEvent<K, V> extends EventAdapter {
      *
      * @return Continuous query filter.
      */
-    @Nullable public CacheEntryEventSerializableFilter<K, V> continuousQueryFilter() {
+    @Nullable public CacheEntryEventFilter<K, V> continuousQueryFilter() {
         return contQryFilter;
     }
 

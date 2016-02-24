@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
+import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryCreatedListener;
 import javax.cache.event.CacheEntryEvent;
 import javax.cache.event.CacheEntryEventFilter;
@@ -54,9 +55,9 @@ import org.apache.ignite.internal.processors.cache.GridCacheEntryEx;
 import org.apache.ignite.internal.processors.cache.GridCacheManagerAdapter;
 import org.apache.ignite.internal.processors.cache.KeyCacheObject;
 import org.apache.ignite.internal.processors.continuous.GridContinuousHandler;
+import org.apache.ignite.internal.processors.continuous.GridContinuousProcessor;
 import org.apache.ignite.internal.util.typedef.CI2;
 import org.apache.ignite.internal.util.typedef.F;
-import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.plugin.security.SecurityPermission;
@@ -70,6 +71,7 @@ import static javax.cache.event.EventType.REMOVED;
 import static javax.cache.event.EventType.UPDATED;
 import static org.apache.ignite.events.EventType.EVT_CACHE_QUERY_OBJECT_READ;
 import static org.apache.ignite.internal.GridTopic.TOPIC_CACHE;
+import static org.apache.ignite.internal.processors.continuous.GridContinuousProcessor.QUERY_MSG_VER_2_SINCE;
 
 /**
  * Continuous queries manager.
@@ -415,6 +417,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
      */
     public UUID executeQuery(CacheEntryUpdatedListener locLsnr,
         CacheEntryEventSerializableFilter rmtFilter,
+        Factory<? extends CacheEntryEventSerializableFilter> rmtFilterFactory,
         int bufSize,
         long timeInterval,
         boolean autoUnsubscribe,
@@ -424,6 +427,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
         return executeQuery0(
             locLsnr,
             rmtFilter,
+            rmtFilterFactory,
             bufSize,
             timeInterval,
             autoUnsubscribe,
@@ -455,6 +459,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
         return executeQuery0(
             locLsnr,
             rmtFilter,
+            null,
             ContinuousQuery.DFLT_PAGE_SIZE,
             ContinuousQuery.DFLT_TIME_INTERVAL,
             ContinuousQuery.DFLT_AUTO_UNSUBSCRIBE,
@@ -554,6 +559,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
      */
     private UUID executeQuery0(CacheEntryUpdatedListener locLsnr,
         final CacheEntryEventSerializableFilter rmtFilter,
+        final Factory<? extends CacheEntryEventSerializableFilter> rmtFilterFactory,
         int bufSize,
         long timeInterval,
         boolean autoUnsubscribe,
@@ -573,21 +579,43 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
 
         boolean skipPrimaryCheck = loc && cctx.config().getCacheMode() == CacheMode.REPLICATED && cctx.affinityNode();
 
-        GridContinuousHandler hnd = new CacheContinuousQueryHandler(
-            cctx.name(),
-            TOPIC_CACHE.topic(topicPrefix, cctx.localNodeId(), seq.getAndIncrement()),
-            locLsnr,
-            rmtFilter,
-            internal,
-            notifyExisting,
-            oldValRequired,
-            sync,
-            ignoreExpired,
-            taskNameHash,
-            skipPrimaryCheck,
-            cctx.isLocal(),
-            keepBinary,
-            ignoreClassNotFound);
+        boolean v2 = useV2Protocol(cctx.discovery().allNodes());
+
+        GridContinuousHandler hnd;
+
+        if (v2)
+            hnd = new CacheContinuousQueryHandlerV2(
+                cctx.name(),
+                TOPIC_CACHE.topic(topicPrefix, cctx.localNodeId(), seq.getAndIncrement()),
+                locLsnr,
+                rmtFilter,
+                rmtFilterFactory,
+                internal,
+                notifyExisting,
+                oldValRequired,
+                sync,
+                ignoreExpired,
+                taskNameHash,
+                skipPrimaryCheck,
+                cctx.isLocal(),
+                keepBinary,
+                ignoreClassNotFound);
+        else
+            hnd = new CacheContinuousQueryHandler(
+                cctx.name(),
+                TOPIC_CACHE.topic(topicPrefix, cctx.localNodeId(), seq.getAndIncrement()),
+                locLsnr,
+                rmtFilter,
+                internal,
+                notifyExisting,
+                oldValRequired,
+                sync,
+                ignoreExpired,
+                taskNameHash,
+                skipPrimaryCheck,
+                cctx.isLocal(),
+                keepBinary,
+                ignoreClassNotFound);
 
         IgnitePredicate<ClusterNode> pred = (loc || cctx.config().getCacheMode() == CacheMode.LOCAL) ?
             F.nodeForNodeId(cctx.localNodeId()) : F.<ClusterNode>alwaysTrue();
@@ -664,6 +692,19 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
         }
 
         return id;
+    }
+
+    /**
+     * @param nodes Nodes.
+     * @return {@code True} if all nodes greater than {@link GridContinuousProcessor#QUERY_MSG_VER_2_SINCE},
+     *     otherwise {@code false}.
+     */
+    private boolean useV2Protocol(Collection<ClusterNode> nodes) {
+        for (ClusterNode node : nodes)
+            if (QUERY_MSG_VER_2_SINCE.compareTo(node.version()) > 0)
+                return false;
+
+        return true;
     }
 
     /**
@@ -786,6 +827,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
             routineId = executeQuery0(
                 locLsnr,
                 rmtFilter,
+                cfg.getCacheEntryEventFilterFactory(),
                 ContinuousQuery.DFLT_PAGE_SIZE,
                 ContinuousQuery.DFLT_TIME_INTERVAL,
                 ContinuousQuery.DFLT_AUTO_UNSUBSCRIBE,

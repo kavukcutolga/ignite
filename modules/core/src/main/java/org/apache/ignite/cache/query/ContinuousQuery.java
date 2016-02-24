@@ -18,6 +18,7 @@
 package org.apache.ignite.cache.query;
 
 import javax.cache.Cache;
+import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryUpdatedListener;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheEntryEventSerializableFilter;
@@ -119,6 +120,9 @@ public final class ContinuousQuery<K, V> extends Query<Cache.Entry<K, V>> {
     /** Remote filter. */
     private CacheEntryEventSerializableFilter<K, V> rmtFilter;
 
+    /** Remote filter factory. */
+    private Factory<? extends CacheEntryEventSerializableFilter<K, V>> rmtFilterFactory;
+
     /** Time interval. */
     private long timeInterval = DFLT_TIME_INTERVAL;
 
@@ -210,6 +214,33 @@ public final class ContinuousQuery<K, V> extends Query<Cache.Entry<K, V>> {
      */
     public CacheEntryEventSerializableFilter<K, V> getRemoteFilter() {
         return rmtFilter;
+    }
+
+    /**
+     * Sets optional key-value filter factory. This factory produces filter is called before entry is
+     * sent to the master node.
+     * <p>
+     * <b>WARNING:</b> all operations that involve any kind of JVM-local or distributed locking
+     * (e.g., synchronization or transactional cache operations), should be executed asynchronously
+     * without blocking the thread that called the filter. Otherwise, you can get deadlocks.
+     *
+     * @param rmtFilterFactory Key-value filter factory.
+     * @return {@code this} for chaining.
+     */
+    public ContinuousQuery<K, V> setRemoteFilterFactory(
+        Factory<? extends CacheEntryEventSerializableFilter<K, V>> rmtFilterFactory) {
+        this.rmtFilterFactory = rmtFilterFactory;
+
+        return this;
+    }
+
+    /**
+     * Gets remote filter.
+     *
+     * @return Remote filter.
+     */
+    public Factory<? extends CacheEntryEventSerializableFilter<K, V>> getRemoteFilterFactory() {
+        return rmtFilterFactory;
     }
 
     /**

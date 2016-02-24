@@ -89,37 +89,37 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     private static final int BACKUP_ACK_THRESHOLD = 100;
 
     /** Cache name. */
-    private String cacheName;
+    protected String cacheName;
 
     /** Topic for ordered messages. */
-    private Object topic;
+    protected Object topic;
 
     /** Local listener. */
     private transient CacheEntryUpdatedListener<K, V> locLsnr;
 
     /** Remote filter. */
-    private CacheEntryEventSerializableFilter<K, V> rmtFilter;
+    protected CacheEntryEventSerializableFilter<K, V> rmtFilter;
 
     /** Deployable object for filter. */
-    private DeployableObject rmtFilterDep;
+    protected DeployableObject rmtFilterDep;
 
     /** Internal flag. */
-    private boolean internal;
+    protected boolean internal;
 
     /** Notify existing flag. */
-    private boolean notifyExisting;
+    protected boolean notifyExisting;
 
     /** Old value required flag. */
-    private boolean oldValRequired;
+    protected boolean oldValRequired;
 
     /** Synchronous flag. */
-    private boolean sync;
+    protected boolean sync;
 
     /** Ignore expired events flag. */
-    private boolean ignoreExpired;
+    protected boolean ignoreExpired;
 
     /** Task name hash code. */
-    private int taskHash;
+    protected int taskHash;
 
     /** Whether to skip primary check for REPLICATED cache. */
     private transient boolean skipPrimaryCheck;
@@ -143,7 +143,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     private transient AcknowledgeBuffer ackBuf;
 
     /** */
-    private transient int cacheId;
+    protected transient int cacheId;
 
     /** */
     private Map<Integer, Long> initUpdCntrs;
@@ -1186,7 +1186,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     /**
      * Deployable object.
      */
-    private static class DeployableObject implements Externalizable {
+    protected static class DeployableObject implements Externalizable {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -1211,7 +1211,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
          * @param ctx Kernal context.
          * @throws IgniteCheckedException In case of error.
          */
-        private DeployableObject(Object obj, GridKernalContext ctx) throws IgniteCheckedException {
+        protected DeployableObject(Object obj, GridKernalContext ctx) throws IgniteCheckedException {
             assert obj != null;
             assert ctx != null;
 
