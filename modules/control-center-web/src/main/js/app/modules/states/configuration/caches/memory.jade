@@ -82,6 +82,16 @@ form.panel.panel-default(name='memory' novalidate)
                             data-placeholder='1500000'
                             data-min='0'
                         )
+                .settings-row
+                    ignite-form-field.checkbox
+                        ignite-form-field-input-checkbox(
+                            data-id='swapEnabled'
+                            data-name='swapEnabled'
+                            data-ng-model='#{model}.swapEnabled'
+                        )
+                        | Swap enabled
+                        ignite-form-field-tooltip
+                            | Flag indicating whether swap storage is enabled or not for this cache
             ignite-ui-ace.col-sm-6
                 .preview-panel(ng-init='mode = false')
                     .preview-legend

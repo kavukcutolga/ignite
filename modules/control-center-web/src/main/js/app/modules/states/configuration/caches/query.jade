@@ -27,66 +27,62 @@ form.panel.panel-default(name='query' novalidate)
                 .settings-row
                     ignite-form-field
                         ignite-form-field-label
-                            | Name:
+                            | SQL schema name:
                         ignite-form-field-tooltip
-                            | Cache name
+                            | Schema name for cache according to SQL ANSI-99
                         ignite-form-field-input-text(
-                            data-id='cacheName'
-                            data-name='cacheName'
-                            data-ng-model='#{model}.name'
-                            data-ng-required='true'
-                            data-placeholder='Input name'
+                            data-id='sqlSchema'
+                            data-name='sqlSchema'
+                            data-ng-model='#{model}.sqlSchema'
+                            data-placeholder='Input schema name'
                         )
                 .settings-row
                     ignite-form-field
                         ignite-form-field-label
-                            | Clusters: #[a(ui-sref='base.configuration.clusters({id: #{model}._id})') (add)]
+                            | On-heap cache for off-heap indexes:
                         ignite-form-field-tooltip
-                            | Associate clusters with the current cache
-                        ignite-form-field-dropdown(
-                            data-id='clusters'
-                            data-name='clusters'
-                            data-options='clusters'
-                            data-multiple='true'
-                            data-ng-model='#{model}.clusters'
-                            data-ng-disabled='!clusters.length'
-                            data-placeholder='{{ clusters.length ? "Choose clusters": "No clusters configured" }}'
+                            | Number of SQL rows which will be cached onheap to avoid deserialization on each SQL index access
+                        ignite-form-field-input-number(
+                            data-id='sqlOnheapRowCacheSize'
+                            data-name='sqlOnheapRowCacheSize'
+                            data-ng-model='#{model}.sqlOnheapRowCacheSize'
+                            data-placeholder='10240'
+                            data-min='1'
                         )
                 .settings-row
                     ignite-form-field
                         ignite-form-field-label
-                            | Domain models: #[a(ui-sref='base.configuration.domains({id: #{model}._id})') (add)]
+                            | Long query timeout:
                         ignite-form-field-tooltip
-                            | Associate clusters with the current cache
-                        ignite-form-field-dropdown(
-                            data-id='domains'
-                            data-name='domains'
-                            data-options='domains'
-                            data-multiple='true'
-                            data-ng-model='#{model}.domains'
-                            data-ng-disabled='!domains.length'
-                            data-placeholder='{{ domains.length ? "Choose domain models": "No domain models configured" }}'
+                            | Timeout in milliseconds after which long query warning will be printed
+                        ignite-form-field-input-number(
+                            data-id='longQueryWarningTimeout'
+                            data-name='longQueryWarningTimeout'
+                            data-ng-model='#{model}.longQueryWarningTimeout'
+                            data-placeholder='3000'
+                            data-min='0'
                         )
                 .settings-row
-                    ignite-form-field
-                        ignite-form-field-label
-                            | Cache mode:
-                        ignite-form-field-tooltip
-                            | Cache modes:
-                            ul: li Partitioned - in this mode the overall key set will be divided into partitions and all partitions will be split equally between participating nodes
-                                li Replicated - in this mode all the keys are distributed to all participating nodes
-                                li Local - in this mode caches residing on different grid nodes will not know about each other
-                        ignite-form-field-dropdown(
-                        data-id='cacheMode'
-                        data-name='cacheMode'
-                        data-options='[\
-                            {value: "LOCAL", label: "LOCAL"},\
-                            {value: "REPLICATED", label: "REPLICATED"},\
-                            {value: "PARTITIONED", label: "PARTITIONED"}\
-                        ]'
-                        data-ng-model='#{model}.cacheMode'
-                        data-placeholder='PARTITIONED'
+                    ignite-form-field.checkbox
+                        ignite-form-field-input-checkbox(
+                            data-id='snapshotableIndex'
+                            data-name='snapshotableIndex'
+                            data-ng-model='#{model}.snapshotableIndex'
                         )
+                        | Snapshotable index
+                        ignite-form-field-tooltip
+                            | Flag indicating whether SQL indexes should support snapshots
+                .settings-row
+                    ignite-form-field.checkbox
+                        ignite-form-field-input-checkbox(
+                            data-id='sqlEscapeAll'
+                            data-name='sqlEscapeAll'
+                            data-ng-model='#{model}.sqlEscapeAll'
+                        )
+                        | Escape table and filed names
+                        ignite-form-field-tooltip
+                            | If set then all the SQL table and field names will be escaped with double quotes
+                            | This enforces case sensitivity for field names and also allows having special characters in table and field names
             ignite-ui-ace.col-sm-6
                 .preview-panel(ng-init='mode = false')
                     .preview-legend
