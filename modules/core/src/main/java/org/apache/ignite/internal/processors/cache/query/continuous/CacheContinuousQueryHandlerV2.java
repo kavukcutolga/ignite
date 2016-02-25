@@ -36,6 +36,9 @@ import org.apache.ignite.internal.util.typedef.internal.U;
  * Continuous query handler V2 version. Contains {@link Factory} for remote listener.
  */
 public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHandler<K, V> {
+    /** */
+    private static final long serialVersionUID = 0L;
+
     /** Remote filter factory. */
     private Factory<? extends CacheEntryEventSerializableFilter<K, V>> rmtFilterFactory;
 
