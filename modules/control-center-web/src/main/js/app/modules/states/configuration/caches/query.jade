@@ -15,6 +15,41 @@
     limitations under the License.
 
 - var model = 'backupItem'
+- var form = 'querySqlFunctionClasses';
+- var sqlFunctionClasses = model + '.sqlFunctionClasses';
+
+mixin sqlFxField(field, save, newItem)
+    - var reset = (newItem ? 'group.add = []' : 'field.edit = false')
+    - var resetOnEnter = (newItem ? '(stopblur = true) && (group.add = [{}])' : '(field.edit = false)')
+    - var resetOnBlure = (newItem ? '!stopblur && (group.add = [])' : 'field.edit = false')
+
+    ignite-form-field-java-class(
+        data-name='#{field}'
+        data-ng-model='#{field}'
+        data-ng-required='true'
+        data-ignite-unique='#{sqlFunctionClasses}'
+        data-ignite-form-field-input-autofocus='true'
+        on-enter='#{valid} && (#{save}); #{valid} && #{resetOnEnter};'
+        on-escape='#{reset}'
+        ng-blur='#{valid} && (#{save}); #{resetOnBlure};'
+    )
+        block
+
+
+mixin sqlFxSaveBtn(valid, save, reset)
+    i.fa.fa-floppy-o(
+        ng-show='#{valid}'
+        ng-click='#{valid} && #{save}; #{valid} && (#{reset});'
+        bs-tooltip
+        data-title='Click icon or press [Enter] to save item'
+    )
+
+mixin sqlFxFeedbackUnique(field)
+    i.fa.fa-exclamation-triangle.form-control-feedback(
+        ng-show='!#{form}.#{field}.$pristine && #{form}.#{field}.$error.igniteUnique'
+        bs-tooltip
+        data-title='SQL function with such class name already exists!'
+    )
 
 form.panel.panel-default(name='query' novalidate)
     .panel-heading(bs-collapse-toggle)
@@ -49,6 +84,49 @@ form.panel.panel-default(name='query' novalidate)
                             data-placeholder='10240'
                             data-min='1'
                         )
+                .settings-row
+                    ignite-form-group(ng-model='#{sqlFunctionClasses}' ng-form='#{form}')
+                        ignite-form-field-label
+                            | SQL functions
+                        ignite-form-group-tooltip
+                            | Collections of classes with user-defined functions for SQL queries
+                        ignite-form-group-add(ng-click='group.add = [{}]')
+                            | Add new user-defined functions for SQL queries
+
+                        .group-content(ng-if='#{sqlFunctionClasses}.length')
+                            - var field = 'edit'
+                            - var valid = form + '.' + field + '.$valid'
+                            - var save = sqlFunctionClasses + '[$index] = ' + field
+                            - var reset = 'field.edit = false'
+
+                            ignite-form-field(ng-repeat='model in #{sqlFunctionClasses} track by $index' type='internal' name='SQL function')
+                                .indexField
+                                    | {{ $index+1 }})
+                                i.tipField.fa.fa-remove(
+                                    ng-hide='field.edit'
+                                    bs-tooltip='"Remove user-defined function"'
+                                    ng-click='#{sqlFunctionClasses}.splice(#{sqlFunctionClasses}.indexOf(model), 1)'
+                                )
+
+                                span(ng-hide='field.edit')
+                                    a.labelFormField(ng-click='field.edit = true') {{ model }}
+                                span(ng-if='field.edit' ng-init='#{field} = model')
+                                    +sqlFxField(field, save, false)
+                                        +sqlFxSaveBtn(valid, save, reset)
+                                        +sqlFxFeedbackUnique(field)
+
+                        .group-content(ng-repeat='field in group.add')
+                            - var field = 'new'
+                            - var valid = form + '.' + field + '.$valid'
+                            - var save = sqlFunctionClasses + '.push(' + field + ')'
+                            - var reset = 'group.add = []'
+
+                            ignite-form-field(type='internal' name='SQL function')
+                                +sqlFxField(field, save, true)
+                                    +sqlFxSaveBtn(valid, save, reset)
+                                    +sqlFxFeedbackUnique(field)
+                        .group-content-empty(ng-if='!(#{sqlFunctionClasses}.length) && !group.add.length')
+                            | Not defined
                 .settings-row
                     ignite-form-field
                         ignite-form-field-label
