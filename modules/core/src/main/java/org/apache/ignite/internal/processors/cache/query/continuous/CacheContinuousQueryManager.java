@@ -559,7 +559,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
      */
     private UUID executeQuery0(CacheEntryUpdatedListener locLsnr,
         final CacheEntryEventSerializableFilter rmtFilter,
-        final Factory<? extends CacheEntryEventSerializableFilter> rmtFilterFactory,
+        final Factory<? extends CacheEntryEventFilter> rmtFilterFactory,
         int bufSize,
         long timeInterval,
         boolean autoUnsubscribe,
@@ -600,12 +600,22 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
                 cctx.isLocal(),
                 keepBinary,
                 ignoreClassNotFound);
-        else
+        else {
+            CacheEntryEventFilter fltr = null;
+
+            if (rmtFilterFactory != null) {
+                fltr = rmtFilterFactory.create();
+
+                if (!(fltr instanceof CacheEntryEventSerializableFilter))
+                    throw new IgniteCheckedException("Cache entry event filter must implement " +
+                        "org.apache.ignite.cache.CacheEntryEventSerializableFilter: " + fltr);
+            }
+
             hnd = new CacheContinuousQueryHandler(
                 cctx.name(),
                 TOPIC_CACHE.topic(topicPrefix, cctx.localNodeId(), seq.getAndIncrement()),
                 locLsnr,
-                rmtFilter,
+                (CacheEntryEventSerializableFilter)fltr,
                 internal,
                 notifyExisting,
                 oldValRequired,
@@ -616,6 +626,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
                 cctx.isLocal(),
                 keepBinary,
                 ignoreClassNotFound);
+        }
 
         IgnitePredicate<ClusterNode> pred = (loc || cctx.config().getCacheMode() == CacheMode.LOCAL) ?
             F.nodeForNodeId(cctx.localNodeId()) : F.<ClusterNode>alwaysTrue();
@@ -812,22 +823,10 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
                 locLsnrImpl,
                 log);
 
-            CacheEntryEventFilter fltr = null;
-
-            if (cfg.getCacheEntryEventFilterFactory() != null) {
-                fltr = (CacheEntryEventFilter)cfg.getCacheEntryEventFilterFactory().create();
-
-                if (!(fltr instanceof Serializable))
-                    throw new IgniteCheckedException("Cache entry event filter must implement java.io.Serializable: "
-                        + fltr);
-            }
-
-            CacheEntryEventSerializableFilter rmtFilter = new JCacheQueryRemoteFilter(fltr, types);
-
             routineId = executeQuery0(
                 locLsnr,
-                rmtFilter,
-                cfg.getCacheEntryEventFilterFactory(),
+                null,
+                new JCacheRemoteQueryFactory(cfg.getCacheEntryEventFilterFactory(), types),
                 ContinuousQuery.DFLT_PAGE_SIZE,
                 ContinuousQuery.DFLT_TIME_INTERVAL,
                 ContinuousQuery.DFLT_AUTO_UNSUBSCRIBE,
@@ -856,6 +855,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
     }
 
     /**
+     *
      */
     private static class JCacheQueryLocalListener<K, V> implements CacheEntryUpdatedListener<K, V> {
         /** */
@@ -938,6 +938,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
     }
 
     /**
+     * For handler version 2.0 this filter should not be serialized.
      */
     private static class JCacheQueryRemoteFilter implements CacheEntryEventSerializableFilter, Externalizable {
         /** */
@@ -1017,6 +1018,34 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
                 default:
                     throw new IllegalStateException("Unknown type: " + evtType);
             }
+        }
+    }
+
+    /**
+     *
+     */
+    private static class JCacheRemoteQueryFactory implements Factory<CacheEntryEventFilter> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
+        /** Factory. */
+        private Factory<CacheEntryEventFilter> impl;
+
+        /** */
+        private byte types;
+
+        /**
+         * @param impl Factory.
+         * @param types Types.
+         */
+        public JCacheRemoteQueryFactory(@Nullable Factory<CacheEntryEventFilter> impl, byte types) {
+            this.impl = impl;
+            this.types = types;
+        }
+
+        /** {@inheritDoc} */
+        @Override public CacheEntryEventFilter create() {
+            return new JCacheQueryRemoteFilter(impl != null ? impl.create() : null, types);
         }
     }
 

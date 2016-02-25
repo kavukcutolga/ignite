@@ -178,11 +178,7 @@ public abstract class IgniteCacheEntryListenerAbstractTest extends IgniteCacheAb
                     return new CreateUpdateRemoveExpireListener();
                 }
             },
-            new Factory<CacheEntryEventSerializableFilter<Object, Object>>() {
-                @Override public CacheEntryEventSerializableFilter<Object, Object> create() {
-                    return new ExceptionFilter();
-                }
-            },
+            new ExceptionFilterFactory(),
             false,
             false
         );
@@ -1465,6 +1461,16 @@ public abstract class IgniteCacheEntryListenerAbstractTest extends IgniteCacheAb
         /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(ListenerTestValue.class, this);
+        }
+    }
+
+    /**
+     *
+     */
+    static class ExceptionFilterFactory implements Factory<CacheEntryEventSerializableFilter<Object, Object>> {
+        /** {@inheritDoc} */
+        @Override public CacheEntryEventSerializableFilter<Object, Object> create() {
+            return new ExceptionFilter();
         }
     }
 }

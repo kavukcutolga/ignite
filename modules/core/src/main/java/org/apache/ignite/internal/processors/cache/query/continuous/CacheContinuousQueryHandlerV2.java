@@ -23,6 +23,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.UUID;
 import javax.cache.configuration.Factory;
+import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryUpdatedListener;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.CacheEntryEventSerializableFilter;
@@ -44,6 +45,9 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
 
     /** Deployable object for filter factory. */
     private DeployableObject rmtFilterFactoryDep;
+
+    /** */
+    protected transient CacheEntryEventFilter<K, V> rmtNonSerFilter;
 
     /**
      * Required by {@link Externalizable}.
@@ -88,12 +92,18 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
         super(cacheName, topic, locLsnr, rmtFilter, internal, notifyExisting, oldValRequired, sync, ignoreExpired,
             taskHash, skipPrimaryCheck, locCache, keepBinary, ignoreClassNotFound);
 
-        assert rmtFilter != null ^ rmtFilterFactory != null || rmtFilter == null && rmtFilterFactory == null;
+        assert rmtFilter != null ^ rmtFilterFactory != null || rmtFilter == null && rmtFilterFactory == null :
+            "Remote Filter and Remote Filter Factory both are not null. Should be set only one.";
 
         this.rmtFilterFactory = rmtFilterFactory;
 
         if (rmtFilterFactory != null)
-            this.rmtFilter = rmtFilterFactory.create();
+            this.rmtNonSerFilter = rmtFilterFactory.create();
+    }
+
+    /** {@inheritDoc} */
+    @Override protected CacheEntryEventFilter<K, V> getRemoteFilter() {
+        return rmtNonSerFilter != null ? rmtNonSerFilter : rmtFilter;
     }
 
     /** {@inheritDoc} */
@@ -193,6 +203,6 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
             rmtFilterFactory = (Factory<CacheEntryEventSerializableFilter<K, V>>)in.readObject();
 
         if (rmtFilter == null && rmtFilterFactory != null)
-            rmtFilter = rmtFilterFactory.create();
+            rmtNonSerFilter = rmtFilterFactory.create();
     }
 }

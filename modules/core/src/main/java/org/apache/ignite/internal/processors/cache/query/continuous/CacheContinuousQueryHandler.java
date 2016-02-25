@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.cache.event.CacheEntryEvent;
+import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryUpdatedListener;
 import javax.cache.event.EventType;
 import org.apache.ignite.IgniteCache;
@@ -262,8 +263,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
         if (locLsnr != null)
             ctx.resource().injectGeneric(locLsnr);
 
-        if (rmtFilter != null)
-            ctx.resource().injectGeneric(rmtFilter);
+        if (getRemoteFilter() != null)
+            ctx.resource().injectGeneric(getRemoteFilter());
 
         entryBufs = new ConcurrentHashMap<>();
 
@@ -303,7 +304,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
                         null,
                         null,
                         null,
-                        rmtFilter,
+                        getRemoteFilter() instanceof CacheEntryEventSerializableFilter ?
+                            (CacheEntryEventSerializableFilter)getRemoteFilter() : null,
                         null,
                         nodeId,
                         taskName()
@@ -332,9 +334,9 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
 
                 boolean notify = !evt.entry().isFiltered();
 
-                if (notify && rmtFilter != null) {
+                if (notify && getRemoteFilter() != null) {
                     try {
-                        notify = rmtFilter.evaluate(evt);
+                        notify = getRemoteFilter().evaluate(evt);
                     }
                     catch (Exception e) {
                         U.error(cctx.logger(CacheContinuousQueryHandler.class), "CacheEntryEventFilter failed: " + e);
@@ -422,7 +424,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
                         null,
                         null,
                         null,
-                        rmtFilter,
+                        getRemoteFilter() instanceof CacheEntryEventSerializableFilter ?
+                            (CacheEntryEventSerializableFilter)getRemoteFilter() : null,
                         null,
                         nodeId,
                         taskName(),
@@ -435,8 +438,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
             }
 
             @Override public void onUnregister() {
-                if (rmtFilter instanceof PlatformContinuousQueryFilter)
-                    ((PlatformContinuousQueryFilter)rmtFilter).onQueryUnregister();
+                if (getRemoteFilter() instanceof PlatformContinuousQueryFilter)
+                    ((PlatformContinuousQueryFilter)getRemoteFilter()).onQueryUnregister();
             }
 
             @Override public void cleanupBackupQueue(Map<Integer, Long> updateCntrs) {
@@ -514,6 +517,13 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
             return RegisterStatus.DELAYED;
 
         return mgr.registerListener(routineId, lsnr, internal);
+    }
+
+    /**
+     * @return Remote filter.
+     */
+    protected CacheEntryEventFilter<K, V> getRemoteFilter() {
+        return rmtFilter;
     }
 
     /**
