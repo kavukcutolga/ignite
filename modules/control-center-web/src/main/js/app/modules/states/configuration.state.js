@@ -19,7 +19,9 @@ import angular from 'angular';
 
 // Clusters screen.
 import previewPanel from './configuration/clusters/preview-panel.directive';
+
 import clustersGeneral from './configuration/clusters/general.directive';
+
 import clustersGeneralDiscoveryCloud from './configuration/clusters/general/discovery/cloud.directive';
 import clustersGeneralDiscoveryGoogle from './configuration/clusters/general/discovery/google.directive';
 import clustersGeneralDiscoveryJdbc from './configuration/clusters/general/discovery/jdbc.directive';
@@ -27,6 +29,16 @@ import clustersGeneralDiscoveryMulticast from './configuration/clusters/general/
 import clustersGeneralDiscoveryS3 from './configuration/clusters/general/discovery/s3.directive';
 import clustersGeneralDiscoveryShared from './configuration/clusters/general/discovery/shared.directive';
 import clustersGeneralDiscoveryVm from './configuration/clusters/general/discovery/vm.directive';
+
+import generalDiscoveryZookeeper from './configuration/clusters/general/discovery/zookeeper.directive';
+import generalDiscoveryZookeeperRetryExponential from './configuration/clusters/general/discovery/zookeeper/retrypolicy/exponential-backoff.directive';
+import generalDiscoveryZookeeperRetryBoundedExponential from './configuration/clusters/general/discovery/zookeeper/retrypolicy/bounded-exponential-backoff.directive';
+import generalDiscoveryZookeeperRetryUntilElapsed from './configuration/clusters/general/discovery/zookeeper/retrypolicy/until-elapsed.directive';
+import generalDiscoveryZookeeperRetryNTimes from './configuration/clusters/general/discovery/zookeeper/retrypolicy/n-times.directive';
+import generalDiscoveryZookeeperRetryOneTime from './configuration/clusters/general/discovery/zookeeper/retrypolicy/one-time.directive';
+import generalDiscoveryZookeeperRetryForever from './configuration/clusters/general/discovery/zookeeper/retrypolicy/forever.directive';
+import generalDiscoveryZookeeperRetryCustom from './configuration/clusters/general/discovery/zookeeper/retrypolicy/custom.directive';
+
 import clustersAtomic from './configuration/clusters/atomic.directive';
 import clustersBinary from './configuration/clusters/binary.directive';
 import clustersCommunication from './configuration/clusters/communication.directive';
@@ -87,6 +99,14 @@ angular
 .directive(...clustersGeneralDiscoveryS3)
 .directive(...clustersGeneralDiscoveryShared)
 .directive(...clustersGeneralDiscoveryVm)
+.directive(...generalDiscoveryZookeeper)
+.directive(...generalDiscoveryZookeeperRetryExponential)
+.directive(...generalDiscoveryZookeeperRetryBoundedExponential)
+.directive(...generalDiscoveryZookeeperRetryUntilElapsed)
+.directive(...generalDiscoveryZookeeperRetryNTimes)
+.directive(...generalDiscoveryZookeeperRetryOneTime)
+.directive(...generalDiscoveryZookeeperRetryForever)
+.directive(...generalDiscoveryZookeeperRetryCustom)
 // Caches screen
 .directive(...cachesGeneral)
 .directive(...cachesMemory)
