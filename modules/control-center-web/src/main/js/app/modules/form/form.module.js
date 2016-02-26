@@ -38,6 +38,7 @@ import igniteFormGroupAdd from './group/add.directive';
 import igniteFormGroupTooltip from './group/tooltip.directive';
 
 // Validators.
+import ipaddress from './validator/ipaddress.directive';
 import javaKeywords from './validator/java-keywords.directive';
 import javaPackageSpecified from './validator/java-package-specified.directive';
 import javaBuiltInClass from './validator/java-built-in-class.directive';
@@ -73,6 +74,7 @@ angular
 .directive(...igniteFormGroupAdd)
 .directive(...igniteFormGroupTooltip)
 // Validators.
+.directive(...ipaddress)
 .directive(...javaKeywords)
 .directive(...javaPackageSpecified)
 .directive(...javaBuiltInClass)

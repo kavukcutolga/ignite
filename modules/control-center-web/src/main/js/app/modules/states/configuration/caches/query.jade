@@ -21,7 +21,7 @@
 mixin sqlFxField(field, save, newItem)
     - var reset = (newItem ? 'group.add = []' : 'field.edit = false')
     - var resetOnEnter = (newItem ? '(stopblur = true) && (group.add = [{}])' : '(field.edit = false)')
-    - var resetOnBlure = (newItem ? '!stopblur && (group.add = [])' : 'field.edit = false')
+    - var resetOnBlur = (newItem ? '!stopblur && (group.add = [])' : 'field.edit = false')
 
     ignite-form-field-java-class(
         data-name='#{field}'
@@ -31,12 +31,14 @@ mixin sqlFxField(field, save, newItem)
         data-ignite-form-field-input-autofocus='true'
         on-enter='#{valid} && (#{save}); #{valid} && #{resetOnEnter};'
         on-escape='#{reset}'
-        ng-blur='#{valid} && (#{save}); #{resetOnBlure};'
+        ng-blur='#{valid} && (#{save}); #{resetOnBlur};'
     )
         block
 
 
-mixin sqlFxSaveBtn(valid, save, reset)
+mixin sqlFxSaveBtn(valid, save, newItem)
+    - var reset = (newItem ? 'group.add = []' : 'field.edit = false')
+
     i.fa.fa-floppy-o(
         ng-show='#{valid}'
         ng-click='#{valid} && #{save}; #{valid} && (#{reset});'
@@ -97,7 +99,6 @@ form.panel.panel-default(name='query' novalidate)
                             - var field = 'edit'
                             - var valid = form + '.' + field + '.$valid'
                             - var save = sqlFunctionClasses + '[$index] = ' + field
-                            - var reset = 'field.edit = false'
 
                             ignite-form-field(ng-repeat='model in #{sqlFunctionClasses} track by $index' type='internal' name='SQL function')
                                 .indexField
@@ -112,18 +113,17 @@ form.panel.panel-default(name='query' novalidate)
                                     a.labelFormField(ng-click='field.edit = true') {{ model }}
                                 span(ng-if='field.edit' ng-init='#{field} = model')
                                     +sqlFxField(field, save, false)
-                                        +sqlFxSaveBtn(valid, save, reset)
+                                        +sqlFxSaveBtn(valid, save, false)
                                         +sqlFxFeedbackUnique(field)
 
                         .group-content(ng-repeat='field in group.add')
                             - var field = 'new'
                             - var valid = form + '.' + field + '.$valid'
                             - var save = sqlFunctionClasses + '.push(' + field + ')'
-                            - var reset = 'group.add = []'
 
                             ignite-form-field(type='internal' name='SQL function')
                                 +sqlFxField(field, save, true)
-                                    +sqlFxSaveBtn(valid, save, reset)
+                                    +sqlFxSaveBtn(valid, save, true)
                                     +sqlFxFeedbackUnique(field)
                         .group-content-empty(ng-if='!(#{sqlFunctionClasses}.length) && !group.add.length')
                             | Not defined

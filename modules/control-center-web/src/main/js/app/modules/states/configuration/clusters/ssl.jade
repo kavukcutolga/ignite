@@ -23,7 +23,7 @@
 mixin trstMgrField(field, save, newItem)
     - var reset = (newItem ? 'group.add = []' : 'field.edit = false')
     - var resetOnEnter = (newItem ? '(stopblur = true) && (group.add = [{}])' : '(field.edit = false)')
-    - var resetOnBlure = (newItem ? '!stopblur && (group.add = [])' : 'field.edit = false')
+    - var resetOnBlur = (newItem ? '!stopblur && (group.add = [])' : 'field.edit = false')
 
     ignite-form-field-java-class(
         data-name='#{field}'
@@ -33,7 +33,7 @@ mixin trstMgrField(field, save, newItem)
         data-ignite-form-field-input-autofocus='true'
         on-enter='#{valid} && (#{save}); #{valid} && #{resetOnEnter};'
         on-escape='#{reset}'
-        ng-blur='#{valid} && (#{save}); #{resetOnBlure};'
+        ng-blur='#{valid} && (#{save}); #{resetOnBlur};'
     )
         block
 
