@@ -1209,14 +1209,19 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
 
                     boolean forceLocDep = internal || !ctx.deploy().enabled();
 
+                    ComputeJob job = res.getJob();
+
+                    if (job instanceof ReplaceableComputeJobAdapter)
+                        job = ((ReplaceableComputeJobAdapter)job).replace(node);
+
                     req = new GridJobExecuteRequest(
                         ses.getId(),
                         res.getJobContext().getJobId(),
                         ses.getTaskName(),
                         ses.getUserVersion(),
                         ses.getTaskClassName(),
-                        loc ? null : marsh.marshal(res.getJob()),
-                        loc ? res.getJob() : null,
+                        loc ? null : marsh.marshal(job),
+                        loc ? job : null,
                         ses.getStartTime(),
                         timeout,
                         ses.getTopology(),
