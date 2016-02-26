@@ -30,14 +30,14 @@ import clustersGeneralDiscoveryS3 from './configuration/clusters/general/discove
 import clustersGeneralDiscoveryShared from './configuration/clusters/general/discovery/shared.directive';
 import clustersGeneralDiscoveryVm from './configuration/clusters/general/discovery/vm.directive';
 
-import generalDiscoveryZookeeper from './configuration/clusters/general/discovery/zookeeper.directive';
-import generalDiscoveryZookeeperRetryExponential from './configuration/clusters/general/discovery/zookeeper/retrypolicy/exponential-backoff.directive';
-import generalDiscoveryZookeeperRetryBoundedExponential from './configuration/clusters/general/discovery/zookeeper/retrypolicy/bounded-exponential-backoff.directive';
-import generalDiscoveryZookeeperRetryUntilElapsed from './configuration/clusters/general/discovery/zookeeper/retrypolicy/until-elapsed.directive';
-import generalDiscoveryZookeeperRetryNTimes from './configuration/clusters/general/discovery/zookeeper/retrypolicy/n-times.directive';
-import generalDiscoveryZookeeperRetryOneTime from './configuration/clusters/general/discovery/zookeeper/retrypolicy/one-time.directive';
-import generalDiscoveryZookeeperRetryForever from './configuration/clusters/general/discovery/zookeeper/retrypolicy/forever.directive';
-import generalDiscoveryZookeeperRetryCustom from './configuration/clusters/general/discovery/zookeeper/retrypolicy/custom.directive';
+import clustersGeneralDiscoveryZookeeper from './configuration/clusters/general/discovery/zookeeper.directive';
+import clustersGeneralDiscoveryZookeeperRetryExponential from './configuration/clusters/general/discovery/zookeeper/retrypolicy/exponential-backoff.directive';
+import clustersGeneralDiscoveryZookeeperRetryBoundedExponential from './configuration/clusters/general/discovery/zookeeper/retrypolicy/bounded-exponential-backoff.directive';
+import clustersGeneralDiscoveryZookeeperRetryUntilElapsed from './configuration/clusters/general/discovery/zookeeper/retrypolicy/until-elapsed.directive';
+import clustersGeneralDiscoveryZookeeperRetryNTimes from './configuration/clusters/general/discovery/zookeeper/retrypolicy/n-times.directive';
+import clustersGeneralDiscoveryZookeeperRetryOneTime from './configuration/clusters/general/discovery/zookeeper/retrypolicy/one-time.directive';
+import clustersGeneralDiscoveryZookeeperRetryForever from './configuration/clusters/general/discovery/zookeeper/retrypolicy/forever.directive';
+import clustersGeneralDiscoveryZookeeperRetryCustom from './configuration/clusters/general/discovery/zookeeper/retrypolicy/custom.directive';
 
 import clustersAtomic from './configuration/clusters/atomic.directive';
 import clustersBinary from './configuration/clusters/binary.directive';
@@ -99,14 +99,14 @@ angular
 .directive(...clustersGeneralDiscoveryS3)
 .directive(...clustersGeneralDiscoveryShared)
 .directive(...clustersGeneralDiscoveryVm)
-.directive(...generalDiscoveryZookeeper)
-.directive(...generalDiscoveryZookeeperRetryExponential)
-.directive(...generalDiscoveryZookeeperRetryBoundedExponential)
-.directive(...generalDiscoveryZookeeperRetryUntilElapsed)
-.directive(...generalDiscoveryZookeeperRetryNTimes)
-.directive(...generalDiscoveryZookeeperRetryOneTime)
-.directive(...generalDiscoveryZookeeperRetryForever)
-.directive(...generalDiscoveryZookeeperRetryCustom)
+.directive(...clustersGeneralDiscoveryZookeeper)
+.directive(...clustersGeneralDiscoveryZookeeperRetryExponential)
+.directive(...clustersGeneralDiscoveryZookeeperRetryBoundedExponential)
+.directive(...clustersGeneralDiscoveryZookeeperRetryUntilElapsed)
+.directive(...clustersGeneralDiscoveryZookeeperRetryNTimes)
+.directive(...clustersGeneralDiscoveryZookeeperRetryOneTime)
+.directive(...clustersGeneralDiscoveryZookeeperRetryForever)
+.directive(...clustersGeneralDiscoveryZookeeperRetryCustom)
 // Caches screen
 .directive(...cachesGeneral)
 .directive(...cachesMemory)
