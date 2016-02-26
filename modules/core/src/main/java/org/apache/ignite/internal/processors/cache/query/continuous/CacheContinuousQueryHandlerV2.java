@@ -29,7 +29,6 @@ import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.CacheEntryEventSerializableFilter;
 import org.apache.ignite.internal.GridKernalContext;
 import org.apache.ignite.internal.processors.continuous.GridContinuousHandler;
-import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
 
@@ -77,7 +76,6 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
         String cacheName,
         Object topic,
         CacheEntryUpdatedListener<K, V> locLsnr,
-        CacheEntryEventSerializableFilter<K, V> rmtFilter,
         Factory<? extends CacheEntryEventSerializableFilter<K, V>> rmtFilterFactory,
         boolean internal,
         boolean notifyExisting,
@@ -88,22 +86,36 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
         boolean skipPrimaryCheck,
         boolean locCache,
         boolean keepBinary,
-        boolean ignoreClassNotFound) {
-        super(cacheName, topic, locLsnr, rmtFilter, internal, notifyExisting, oldValRequired, sync, ignoreExpired,
-            taskHash, skipPrimaryCheck, locCache, keepBinary, ignoreClassNotFound);
+        boolean ignoreClsNotFound) {
+        super(cacheName,
+            topic,
+            locLsnr,
+            null,
+            internal,
+            notifyExisting,
+            oldValRequired,
+            sync,
+            ignoreExpired,
+            taskHash,
+            skipPrimaryCheck,
+            locCache,
+            keepBinary,
+            ignoreClsNotFound);
 
-        assert rmtFilter != null ^ rmtFilterFactory != null || rmtFilter == null && rmtFilterFactory == null :
-            "Remote Filter and Remote Filter Factory both are not null. Should be set only one.";
+        assert rmtFilterFactory != null;
 
         this.rmtFilterFactory = rmtFilterFactory;
-
-        if (rmtFilterFactory != null)
-            this.rmtNonSerFilter = rmtFilterFactory.create();
     }
 
     /** {@inheritDoc} */
     @Override protected CacheEntryEventFilter<K, V> getRemoteFilter() {
-        return rmtNonSerFilter != null ? rmtNonSerFilter : rmtFilter;
+        if (rmtNonSerFilter == null) {
+            assert rmtFilterFactory != null;
+
+            rmtNonSerFilter = rmtFilterFactory.create();
+        }
+
+        return rmtNonSerFilter;
     }
 
     /** {@inheritDoc} */
@@ -118,11 +130,8 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
     @Override public void p2pUnmarshal(UUID nodeId, GridKernalContext ctx) throws IgniteCheckedException {
         super.p2pUnmarshal(nodeId, ctx);
 
-        if (rmtFilterFactoryDep != null) {
+        if (rmtFilterFactoryDep != null)
             rmtFilterFactory = rmtFilterFactoryDep.unmarshal(nodeId, ctx);
-
-            rmtFilter = rmtFilterFactory.create();
-        }
     }
 
     /** {@inheritDoc} */
@@ -137,31 +146,7 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        U.writeString(out, cacheName);
-        out.writeObject(topic);
-
-        if (rmtFilterFactory == null && rmtFilter != null) {
-            boolean b = rmtFilterDep != null;
-
-            out.writeBoolean(b);
-
-            if (b)
-                out.writeObject(rmtFilterDep);
-            else
-                out.writeObject(rmtFilter);
-        }
-        else {
-            out.writeBoolean(false);
-
-            out.writeObject(null);
-        }
-
-        out.writeBoolean(internal);
-        out.writeBoolean(notifyExisting);
-        out.writeBoolean(oldValRequired);
-        out.writeBoolean(sync);
-        out.writeBoolean(ignoreExpired);
-        out.writeInt(taskHash);
+        super.writeExternal(out);
 
         boolean b = rmtFilterFactoryDep != null;
 
@@ -176,33 +161,13 @@ public class CacheContinuousQueryHandlerV2<K, V> extends CacheContinuousQueryHan
     /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        cacheName = U.readString(in);
-        topic = in.readObject();
+        super.readExternal(in);
 
         boolean b = in.readBoolean();
-
-        if (b)
-            rmtFilterDep = (DeployableObject)in.readObject();
-        else
-            rmtFilter = (CacheEntryEventSerializableFilter<K, V>)in.readObject();
-
-        internal = in.readBoolean();
-        notifyExisting = in.readBoolean();
-        oldValRequired = in.readBoolean();
-        sync = in.readBoolean();
-        ignoreExpired = in.readBoolean();
-        taskHash = in.readInt();
-
-        cacheId = CU.cacheId(cacheName);
-
-        b = in.readBoolean();
 
         if (b)
             rmtFilterFactoryDep = (DeployableObject)in.readObject();
         else
             rmtFilterFactory = (Factory<CacheEntryEventSerializableFilter<K, V>>)in.readObject();
-
-        if (rmtFilter == null && rmtFilterFactory != null)
-            rmtNonSerFilter = rmtFilterFactory.create();
     }
 }

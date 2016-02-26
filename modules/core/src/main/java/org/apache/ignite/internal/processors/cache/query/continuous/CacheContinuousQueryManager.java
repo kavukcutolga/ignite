@@ -21,7 +21,6 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Collection;
@@ -579,16 +578,17 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
 
         boolean skipPrimaryCheck = loc && cctx.config().getCacheMode() == CacheMode.REPLICATED && cctx.affinityNode();
 
-        boolean v2 = useV2Protocol(cctx.discovery().allNodes());
+        boolean v2 = rmtFilterFactory != null && useV2Protocol(cctx.discovery().allNodes());
 
         GridContinuousHandler hnd;
 
-        if (v2)
+        if (v2) {
+            assert rmtFilter == null : rmtFilter;
+
             hnd = new CacheContinuousQueryHandlerV2(
                 cctx.name(),
                 TOPIC_CACHE.topic(topicPrefix, cctx.localNodeId(), seq.getAndIncrement()),
                 locLsnr,
-                rmtFilter,
                 rmtFilterFactory,
                 internal,
                 notifyExisting,
@@ -600,6 +600,7 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
                 cctx.isLocal(),
                 keepBinary,
                 ignoreClassNotFound);
+        }
         else {
             CacheEntryEventFilter fltr = null;
 
@@ -711,9 +712,10 @@ public class CacheContinuousQueryManager extends GridCacheManagerAdapter {
      *     otherwise {@code false}.
      */
     private boolean useV2Protocol(Collection<ClusterNode> nodes) {
-        for (ClusterNode node : nodes)
+        for (ClusterNode node : nodes) {
             if (QUERY_MSG_VER_2_SINCE.compareTo(node.version()) > 0)
                 return false;
+        }
 
         return true;
     }

@@ -90,37 +90,37 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     private static final int BACKUP_ACK_THRESHOLD = 100;
 
     /** Cache name. */
-    protected String cacheName;
+    private String cacheName;
 
     /** Topic for ordered messages. */
-    protected Object topic;
+    private Object topic;
 
     /** Local listener. */
     private transient CacheEntryUpdatedListener<K, V> locLsnr;
 
     /** Remote filter. */
-    protected CacheEntryEventSerializableFilter<K, V> rmtFilter;
+    private CacheEntryEventSerializableFilter<K, V> rmtFilter;
 
     /** Deployable object for filter. */
-    protected DeployableObject rmtFilterDep;
+    private DeployableObject rmtFilterDep;
 
     /** Internal flag. */
-    protected boolean internal;
+    private boolean internal;
 
     /** Notify existing flag. */
-    protected boolean notifyExisting;
+    private boolean notifyExisting;
 
     /** Old value required flag. */
-    protected boolean oldValRequired;
+    private boolean oldValRequired;
 
     /** Synchronous flag. */
-    protected boolean sync;
+    private boolean sync;
 
     /** Ignore expired events flag. */
-    protected boolean ignoreExpired;
+    private boolean ignoreExpired;
 
     /** Task name hash code. */
-    protected int taskHash;
+    private int taskHash;
 
     /** Whether to skip primary check for REPLICATED cache. */
     private transient boolean skipPrimaryCheck;
@@ -144,7 +144,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     private transient AcknowledgeBuffer ackBuf;
 
     /** */
-    protected transient int cacheId;
+    private transient int cacheId;
 
     /** */
     private Map<Integer, Long> initUpdCntrs;
@@ -263,8 +263,10 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
         if (locLsnr != null)
             ctx.resource().injectGeneric(locLsnr);
 
-        if (getRemoteFilter() != null)
-            ctx.resource().injectGeneric(getRemoteFilter());
+        final CacheEntryEventFilter filter = getRemoteFilter();
+
+        if (filter != null)
+            ctx.resource().injectGeneric(filter);
 
         entryBufs = new ConcurrentHashMap<>();
 
@@ -304,8 +306,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
                         null,
                         null,
                         null,
-                        getRemoteFilter() instanceof CacheEntryEventSerializableFilter ?
-                            (CacheEntryEventSerializableFilter)getRemoteFilter() : null,
+                        filter instanceof CacheEntryEventSerializableFilter ?
+                            (CacheEntryEventSerializableFilter)filter : null,
                         null,
                         nodeId,
                         taskName()
@@ -334,9 +336,9 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
 
                 boolean notify = !evt.entry().isFiltered();
 
-                if (notify && getRemoteFilter() != null) {
+                if (notify && filter != null) {
                     try {
-                        notify = getRemoteFilter().evaluate(evt);
+                        notify = filter.evaluate(evt);
                     }
                     catch (Exception e) {
                         U.error(cctx.logger(CacheContinuousQueryHandler.class), "CacheEntryEventFilter failed: " + e);
@@ -424,8 +426,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
                         null,
                         null,
                         null,
-                        getRemoteFilter() instanceof CacheEntryEventSerializableFilter ?
-                            (CacheEntryEventSerializableFilter)getRemoteFilter() : null,
+                        filter instanceof CacheEntryEventSerializableFilter ?
+                            (CacheEntryEventSerializableFilter)filter : null,
                         null,
                         nodeId,
                         taskName(),
@@ -438,8 +440,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
             }
 
             @Override public void onUnregister() {
-                if (getRemoteFilter() instanceof PlatformContinuousQueryFilter)
-                    ((PlatformContinuousQueryFilter)getRemoteFilter()).onQueryUnregister();
+                if (filter instanceof PlatformContinuousQueryFilter)
+                    ((PlatformContinuousQueryFilter)filter).onQueryUnregister();
             }
 
             @Override public void cleanupBackupQueue(Map<Integer, Long> updateCntrs) {
