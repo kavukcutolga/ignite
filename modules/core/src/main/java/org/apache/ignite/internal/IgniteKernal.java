@@ -173,6 +173,7 @@ import org.apache.ignite.spi.IgniteSpiVersionCheckException;
 import org.apache.ignite.spi.discovery.tcp.internal.TcpDiscoveryNode;
 import org.apache.ignite.thread.IgniteStripedThreadPoolExecutor;
 import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_CONFIG_URL;
@@ -681,7 +682,8 @@ public class IgniteKernal implements IgniteEx, IgniteMXBean, Externalizable {
         ExecutorService igfsExecSvc,
         ExecutorService restExecSvc,
         IgniteStripedThreadPoolExecutor callbackExecSvc,
-        GridAbsClosure errHnd, IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc)
+        GridAbsClosure errHnd,
+        IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc)
         throws IgniteCheckedException
     {
         gw.compareAndSet(null, new GridKernalGatewayImpl(cfg.getGridName()));

@@ -91,6 +91,7 @@ import org.apache.ignite.plugin.PluginNotFoundException;
 import org.apache.ignite.plugin.PluginProvider;
 import org.apache.ignite.thread.IgniteStripedThreadPoolExecutor;
 import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_DAEMON;
@@ -406,6 +407,7 @@ public class GridKernalContextImpl implements GridKernalContext, Externalizable 
         this.igfsExecSvc = igfsExecSvc;
         this.restExecSvc = restExecSvc;
         this.callbackExecSvc = callbackExecSvc;
+        this.scheduledCacheWriteBehindSvc = scheduledCacheWriteBehindSvc;
         this.scheduledCacheWriteBehindSvc = scheduledCacheWriteBehindSvc;
 
         marshCtx = new MarshallerContextImpl(plugins);

@@ -93,6 +93,7 @@ import org.apache.ignite.spi.swapspace.file.FileSwapSpaceSpi;
 import org.apache.ignite.spi.swapspace.noop.NoopSwapSpaceSpi;
 import org.apache.ignite.thread.IgniteStripedThreadPoolExecutor;
 import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 import org.apache.ignite.thread.IgniteThread;
 import org.apache.ignite.thread.IgniteThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
@@ -2347,6 +2348,7 @@ public class IgnitionEx {
             marshCacheExecSvc = null;
 
             U.shutdownNow(getClass(), callbackExecSvc, log);
+            U.shutdownNow(getClass(),scheduledCacheWriteBehindSvc,log);
             //U.shutdownNow(getClass(),scheduledCacheWriteBehindSvc,log);
 
 
