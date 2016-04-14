@@ -212,6 +212,12 @@ public class IgniteConfiguration {
     @SuppressWarnings("UnnecessaryBoxing")
     public static final Long DFLT_FAILURE_DETECTION_TIMEOUT = new Long(10_000);
 
+    /* Default value for flusher thread pool */
+    public static final Integer DFLT_FLUSHER_POOL_SIZE = 5;
+
+    /* Default value for flusher thread pool */
+    public static final Integer DFLT_FLUSHER_FIXED_RATE = 1000;
+
     /** Optional grid name. */
     private String gridName;
 
@@ -453,9 +459,14 @@ public class IgniteConfiguration {
     /** */
     private boolean lateAffAssignment = DFLT_LATE_AFF_ASSIGNMENT;
 
+    private int flusherPoolSize = DFLT_FLUSHER_POOL_SIZE;
+
+    private int flusherFixedRate = DFLT_FLUSHER_FIXED_RATE;
+
     /**
      * Creates valid grid configuration with all default values.
      */
+
     public IgniteConfiguration() {
         // No-op.
     }
@@ -501,6 +512,8 @@ public class IgniteConfiguration {
         deployMode = cfg.getDeploymentMode();
         discoStartupDelay = cfg.getDiscoveryStartupDelay();
         failureDetectionTimeout = cfg.getFailureDetectionTimeout();
+        flusherPoolSize = cfg.getFlusherPoolSize();
+        flusherFixedRate = cfg.getFlusherFixedRate();
         gridName = cfg.getGridName();
         hadoopCfg = cfg.getHadoopConfiguration();
         igfsCfg = cfg.getFileSystemConfiguration();
@@ -900,6 +913,8 @@ public class IgniteConfiguration {
 
         return this;
     }
+
+
 
     /**
      * Sets default thread pool size that will be used to process utility cache messages.
@@ -1429,6 +1444,22 @@ public class IgniteConfiguration {
         this.rebalanceThreadPoolSize = rebalanceThreadPoolSize;
 
         return this;
+    }
+
+    public int getFlusherPoolSize() {
+        return flusherPoolSize;
+    }
+
+    public void setFlusherPoolSize(int flusherPoolSize) {
+        this.flusherPoolSize = flusherPoolSize;
+    }
+
+    public int getFlusherFixedRate() {
+        return flusherFixedRate;
+    }
+
+    public void setFlusherFixedRate(int flusherFixedRate) {
+        this.flusherFixedRate = flusherFixedRate;
     }
 
     /**

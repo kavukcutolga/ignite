@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
@@ -44,7 +44,7 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.internal.util.worker.GridWorker;
 import org.apache.ignite.lang.IgniteBiInClosure;
 import org.apache.ignite.lifecycle.LifecycleAware;
-import org.apache.ignite.thread.IgniteThread;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
 import org.jsr166.ConcurrentLinkedHashMap;
 
@@ -136,26 +136,29 @@ public class GridCacheWriteBehindStore<K, V> implements CacheStore<K, V>, Lifecy
     /** Store manager. */
     private CacheStoreManager storeMgr;
 
+    private IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc;
+
     /**
      * Creates a write-behind cache store for the given store.
-     *
-     * @param storeMgr Store manager.
+     *  @param storeMgr Store manager.
      * @param gridName Grid name.
      * @param cacheName Cache name.
      * @param log Grid logger.
      * @param store {@code GridCacheStore} that need to be wrapped.
+     * @param scheduledCacheWriteBehindSvc
      */
     public GridCacheWriteBehindStore(
         CacheStoreManager storeMgr,
         String gridName,
         String cacheName,
         IgniteLogger log,
-        CacheStore<K, V> store) {
+        CacheStore<K, V> store, IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc) {
         this.storeMgr = storeMgr;
         this.gridName = gridName;
         this.cacheName = cacheName;
         this.log = log;
         this.store = store;
+        this.scheduledCacheWriteBehindSvc = scheduledCacheWriteBehindSvc;
     }
 
     /**
@@ -299,7 +302,8 @@ public class GridCacheWriteBehindStore<K, V> implements CacheStore<K, V>, Lifecy
             for (int i = 0; i < flushThreads.length; i++) {
                 flushThreads[i] = new Flusher(gridName, "flusher-" + i, log);
 
-                new IgniteThread(flushThreads[i]).start();
+                this.scheduledCacheWriteBehindSvc.schedule(flushThreads[i],cacheName);
+
             }
         }
     }
@@ -346,13 +350,7 @@ public class GridCacheWriteBehindStore<K, V> implements CacheStore<K, V>, Lifecy
 
             wakeUp();
 
-            boolean graceful = true;
-
-            for (GridWorker worker : flushThreads)
-                graceful &= U.join(worker, log);
-
-            if (!graceful)
-                log.warning("Shutdown was aborted");
+            this.scheduledCacheWriteBehindSvc.unschedule(cacheName);
         }
     }
 
@@ -748,37 +746,12 @@ public class GridCacheWriteBehindStore<K, V> implements CacheStore<K, V>, Lifecy
 
         /** {@inheritDoc} */
         @Override protected void body() throws InterruptedException, IgniteInterruptedCheckedException {
-            while (!stopping.get() || writeCache.sizex() > 0) {
-                awaitOperationsAvailable();
-
-                flushCache(writeCache.entrySet().iterator());
-            }
-        }
-
-        /**
-         * This method awaits until enough elements in map are available or given timeout is over.
-         *
-         * @throws InterruptedException If awaiting was interrupted.
-         */
-        private void awaitOperationsAvailable() throws InterruptedException {
-            flushLock.lock();
-
-            try {
-                do {
-                    if (writeCache.sizex() <= cacheMaxSize || cacheMaxSize == 0) {
-                        if (cacheFlushFreq > 0)
-                            canFlush.await(cacheFlushFreq, TimeUnit.MILLISECONDS);
-                        else
-                            canFlush.await();
-                    }
+            if (!stopping.get() || writeCache.sizex() > 0) {
+                if (writeCache.sizex() > 0 || cacheMaxSize == 0) {
+                    flushCache(writeCache.entrySet().iterator());
                 }
-                while (writeCache.sizex() == 0 && !stopping.get());
-            }
-            finally {
-                flushLock.unlock();
             }
         }
-
         /**
          * Removes values from the write cache and performs corresponding operation
          * on the underlying store.

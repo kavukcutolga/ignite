@@ -90,6 +90,7 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.plugin.PluginNotFoundException;
 import org.apache.ignite.plugin.PluginProvider;
 import org.apache.ignite.thread.IgniteStripedThreadPoolExecutor;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_DAEMON;
@@ -304,6 +305,8 @@ public class GridKernalContextImpl implements GridKernalContext, Externalizable 
     @GridToStringExclude
     protected ExecutorService restExecSvc;
 
+    protected IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc;
+
     /** */
     @GridToStringExclude
     protected IgniteStripedThreadPoolExecutor callbackExecSvc;
@@ -385,7 +388,8 @@ public class GridKernalContextImpl implements GridKernalContext, Externalizable 
         ExecutorService igfsExecSvc,
         ExecutorService restExecSvc,
         IgniteStripedThreadPoolExecutor callbackExecSvc,
-        List<PluginProvider> plugins) throws IgniteCheckedException {
+        List<PluginProvider> plugins,
+        IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc) throws IgniteCheckedException {
         assert grid != null;
         assert cfg != null;
         assert gw != null;
@@ -402,6 +406,7 @@ public class GridKernalContextImpl implements GridKernalContext, Externalizable 
         this.igfsExecSvc = igfsExecSvc;
         this.restExecSvc = restExecSvc;
         this.callbackExecSvc = callbackExecSvc;
+        this.scheduledCacheWriteBehindSvc = scheduledCacheWriteBehindSvc;
 
         marshCtx = new MarshallerContextImpl(plugins);
 
@@ -980,6 +985,12 @@ public class GridKernalContextImpl implements GridKernalContext, Externalizable 
         return platformProc;
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public IgniteScheduledThreadPoolExecutor getScheduledCacheWriteBehindSvc() {
+        return scheduledCacheWriteBehindSvc;
+    }
+
     /**
      * @param disconnected Disconnected flag.
      */
@@ -991,4 +1002,6 @@ public class GridKernalContextImpl implements GridKernalContext, Externalizable 
     @Override public String toString() {
         return S.toString(GridKernalContextImpl.class, this);
     }
+
+
 }

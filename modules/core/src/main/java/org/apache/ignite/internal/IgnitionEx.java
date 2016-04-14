@@ -34,11 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Handler;
 import javax.management.JMException;
@@ -96,6 +92,7 @@ import org.apache.ignite.spi.loadbalancing.roundrobin.RoundRobinLoadBalancingSpi
 import org.apache.ignite.spi.swapspace.file.FileSwapSpaceSpi;
 import org.apache.ignite.spi.swapspace.noop.NoopSwapSpaceSpi;
 import org.apache.ignite.thread.IgniteStripedThreadPoolExecutor;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 import org.apache.ignite.thread.IgniteThread;
 import org.apache.ignite.thread.IgniteThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
@@ -337,6 +334,7 @@ public class IgnitionEx {
 
             if (fireEvt)
                 notifyStateChange(grid.getName(), grid.state());
+
 
             return true;
         }
@@ -1502,6 +1500,9 @@ public class IgnitionEx {
         /** */
         private boolean starterThreadInterrupted;
 
+
+        private IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc;
+
         /**
          * Creates un-started named instance.
          *
@@ -1725,6 +1726,8 @@ public class IgnitionEx {
                 myCfg.getMarshallerCacheKeepAliveTime(),
                 new LinkedBlockingQueue<Runnable>(DFLT_SYSTEM_THREADPOOL_QUEUE_CAP));
 
+            scheduledCacheWriteBehindSvc = IgniteScheduledThreadPoolExecutor.executor(cfg.getFlusherPoolSize(),cfg.getFlusherFixedRate());
+
             // Register Ignite MBean for current grid instance.
             registerFactoryMbean(myCfg.getMBeanServer());
 
@@ -1742,7 +1745,7 @@ public class IgnitionEx {
                         @Override public void apply() {
                             startLatch.countDown();
                         }
-                    });
+                    },scheduledCacheWriteBehindSvc);
 
                 state = STARTED;
 
@@ -2344,6 +2347,7 @@ public class IgnitionEx {
             marshCacheExecSvc = null;
 
             U.shutdownNow(getClass(), callbackExecSvc, log);
+            U.shutdownNow(getClass(),scheduledCacheWriteBehindSvc,log);
 
             callbackExecSvc = null;
         }

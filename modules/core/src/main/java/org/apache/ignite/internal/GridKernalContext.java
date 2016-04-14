@@ -68,6 +68,7 @@ import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.plugin.PluginNotFoundException;
 import org.apache.ignite.plugin.PluginProvider;
 import org.apache.ignite.thread.IgniteStripedThreadPoolExecutor;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 
 /**
  *
@@ -589,4 +590,9 @@ public interface GridKernalContext extends Iterable<GridComponent> {
      * @return Platform processor.
      */
     public PlatformProcessor platform();
+
+    /**
+     * @return WriteBehind ScheduledExecutorService.
+     */
+    public IgniteScheduledThreadPoolExecutor getScheduledCacheWriteBehindSvc();
 }

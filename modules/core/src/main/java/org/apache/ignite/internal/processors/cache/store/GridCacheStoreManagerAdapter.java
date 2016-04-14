@@ -175,7 +175,8 @@ public abstract class GridCacheStoreManagerAdapter extends GridCacheManagerAdapt
             ctx.gridName(),
             cfg.getName(),
             ctx.log(GridCacheWriteBehindStore.class),
-            cfgStore);
+            cfgStore,
+            ctx.getScheduledCacheWriteBehindSvc());
 
         store.setFlushSize(cfg.getWriteBehindFlushSize());
         store.setFlushThreadCount(cfg.getWriteBehindFlushThreadCount());
@@ -203,6 +204,7 @@ public abstract class GridCacheStoreManagerAdapter extends GridCacheManagerAdapt
         CacheConfiguration cfg = cctx.config();
 
         if (cfgStore != null) {
+
             if (!cfg.isWriteThrough() && !cfg.isReadThrough()) {
                 U.quietAndWarn(log,
                     "Persistence store is configured, but both read-through and write-through are disabled. This " +
