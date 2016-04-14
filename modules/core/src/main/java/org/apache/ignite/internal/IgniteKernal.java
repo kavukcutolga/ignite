@@ -44,6 +44,7 @@ import java.util.Properties;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -169,6 +170,7 @@ import org.apache.ignite.plugin.PluginProvider;
 import org.apache.ignite.spi.IgniteSpi;
 import org.apache.ignite.spi.IgniteSpiVersionCheckException;
 import org.apache.ignite.spi.discovery.tcp.internal.TcpDiscoveryNode;
+import org.apache.ignite.thread.IgniteScheduledThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_CONFIG_URL;
@@ -663,6 +665,7 @@ public class IgniteKernal implements IgniteEx, IgniteMXBean, Externalizable {
      * @param igfsExecSvc IGFS executor service.
      * @param restExecSvc Reset executor service.
      * @param errHnd Error handler to use for notification about startup problems.
+     * @param scheduledCacheWriteBehindSvc
      * @throws IgniteCheckedException Thrown in case of any errors.
      */
     @SuppressWarnings({"CatchGenericClass", "unchecked"})
@@ -675,7 +678,7 @@ public class IgniteKernal implements IgniteEx, IgniteMXBean, Externalizable {
         ExecutorService mgmtExecSvc,
         ExecutorService igfsExecSvc,
         ExecutorService restExecSvc,
-        GridAbsClosure errHnd)
+        GridAbsClosure errHnd, IgniteScheduledThreadPoolExecutor scheduledCacheWriteBehindSvc)
         throws IgniteCheckedException
     {
         gw.compareAndSet(null, new GridKernalGatewayImpl(cfg.getGridName()));
@@ -782,7 +785,8 @@ public class IgniteKernal implements IgniteEx, IgniteMXBean, Externalizable {
                 mgmtExecSvc,
                 igfsExecSvc,
                 restExecSvc,
-                plugins);
+                plugins,
+                scheduledCacheWriteBehindSvc);
 
             cfg.getMarshaller().setContext(ctx.marshallerContext());
 
