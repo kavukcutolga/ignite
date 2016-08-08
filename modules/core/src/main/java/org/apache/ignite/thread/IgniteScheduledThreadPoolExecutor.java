@@ -22,7 +22,7 @@ public class IgniteScheduledThreadPoolExecutor extends ScheduledThreadPoolExecut
     }
 
     public void schedule(GridWorker gridWorker, String cacheName){
-        ScheduledFuture<?> scheduledFuture = super.scheduleAtFixedRate(
+        ScheduledFuture<?> scheduledFuture = super.scheduleWithFixedDelay(
                 gridWorker,
                 0,this.fixedRate,
                 TimeUnit.MILLISECONDS);
