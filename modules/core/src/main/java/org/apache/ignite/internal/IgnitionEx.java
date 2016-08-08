@@ -2347,12 +2347,10 @@ public class IgnitionEx {
 
             marshCacheExecSvc = null;
 
-            U.shutdownNow(getClass(), callbackExecSvc, log);
-            U.shutdownNow(getClass(),scheduledCacheWriteBehindSvc,log);
-            //U.shutdownNow(getClass(),scheduledCacheWriteBehindSvc,log);
-
+            U.shutdownNow(getClass(), callbackExecSvc, log)
 
             callbackExecSvc = null;
+            
             scheduledCacheWriteBehindSvc.shutdown();
             scheduledCacheWriteBehindSvc = null;
         }
