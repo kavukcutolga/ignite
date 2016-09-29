@@ -1462,22 +1462,6 @@ public class IgniteConfiguration {
         this.flusherFixedRate = flusherFixedRate;
     }
 
-    public int getFlusherPoolSize() {
-        return flusherPoolSize;
-    }
-
-    public void setFlusherPoolSize(int flusherPoolSize) {
-        this.flusherPoolSize = flusherPoolSize;
-    }
-
-    public int getFlusherFixedRate() {
-        return flusherFixedRate;
-    }
-
-    public void setFlusherFixedRate(int flusherFixedRate) {
-        this.flusherFixedRate = flusherFixedRate;
-    }
-
     /**
      * Returns a collection of life-cycle beans. These beans will be automatically
      * notified of grid life-cycle events. Use life-cycle beans whenever you
